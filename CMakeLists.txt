@@ -13,6 +13,7 @@ endif()
 
 add_executable(BrickTrain
   Main.cpp
+  StringTable.cpp
   World.cpp
 )
 
