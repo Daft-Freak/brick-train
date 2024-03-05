@@ -1,6 +1,11 @@
+#include <filesystem>
 #include <iostream>
 
 #include <SDL.h>
+
+#include "World.hpp"
+
+namespace fs = std::filesystem;
 
 static bool quit = false;
 
@@ -24,13 +29,18 @@ int main(int argc, char *argv[])
     const int screenHeight = 1024;
 
     // get base path
-    std::string basePath;
+    fs::path basePath;
     auto tmp = SDL_GetBasePath();
     if(tmp)
     {
         basePath = tmp;
         SDL_free(tmp);
     }
+
+    // find data path
+    fs::path dataPath = basePath / "data";
+    if(!fs::exists(dataPath))
+        dataPath = basePath / "../data";
 
     // SDL init
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
@@ -43,11 +53,19 @@ int main(int argc, char *argv[])
 
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
+    World testWorld;
+
+    testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV");
+
     while(!quit)
     {
         pollEvents();
 
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
+
+        testWorld.render(renderer);
+
         SDL_RenderPresent(renderer);
     }
 

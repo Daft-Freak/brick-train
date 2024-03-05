@@ -11,7 +11,10 @@ else()
   add_compile_options("-Wall" "-Wextra" "-Wno-unused-parameter")
 endif()
 
-add_executable(BrickTrain Main.cpp)
+add_executable(BrickTrain
+  Main.cpp
+  World.cpp
+)
 
 find_package(SDL2 REQUIRED)
 
