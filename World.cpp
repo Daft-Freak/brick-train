@@ -25,7 +25,7 @@ bool World::loadSave(const std::filesystem::path &path)
 
     if(file.read(reinterpret_cast<char *>(header), sizeof(header)).gcount() != sizeof(header))
     {
-        std::cerr << "Failed to read header for " << path;
+        std::cerr << "Failed to read header for " << path << "\n";
         return false;
     }
 
@@ -56,7 +56,7 @@ bool World::loadSave(const std::filesystem::path &path)
 
     if(file.read(reinterpret_cast<char *>(tileObjectType), width * height).gcount() != width * height)
     {
-        std::cerr << "Failed to read tile type data for " << path;
+        std::cerr << "Failed to read tile type data for " << path << "\n";
         return false;
     }
 
@@ -70,7 +70,7 @@ bool World::loadSave(const std::filesystem::path &path)
 
         if(file.read(reinterpret_cast<char *>(objectData), sizeof(objectData)).gcount() != sizeof(objectData))
         {
-            std::cerr << "Failed to object " << i << " in " << path;
+            std::cerr << "Failed to object " << i << " in " << path << "\n";
             return false;
         }
 
