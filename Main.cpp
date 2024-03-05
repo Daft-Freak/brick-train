@@ -33,14 +33,14 @@ int main(int argc, char *argv[])
     auto tmp = SDL_GetBasePath();
     if(tmp)
     {
-        basePath = tmp;
+        basePath = fs::canonical(tmp);
         SDL_free(tmp);
     }
 
     // find data path
     fs::path dataPath = basePath / "data";
     if(!fs::exists(dataPath))
-        dataPath = basePath / "../data";
+        dataPath = basePath.parent_path() / "data";
 
     // SDL init
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
