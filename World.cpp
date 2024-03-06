@@ -104,15 +104,22 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
 
         objects.emplace_back(Object{objectId, objectX, objectY, objectName, texture, {}});
 
-        std::cout << "object " << objectId << " (\"" << objectName << "\") at " << objectX << ", " << objectY << std::hex;
+        bool hasUnk = false;
 
         for(int j = 6; j < 16; j++)
         {
             if(objectData[j])
+            {
+                if(!hasUnk)
+                    std::cout << "object " << objectId << " (\"" << objectName << "\") at " << objectX << ", " << objectY << std::hex;
+
                 std::cout << " unk" << j << "=" << int(objectData[j]);
+                hasUnk = true;
+            }
         }
 
-        std::cout << std::dec << "\n";
+        if(hasUnk)
+            std::cout << std::dec << std::endl;
 
         // up to 5 minifigs
         auto minifigData = objectData + 0x1C;
