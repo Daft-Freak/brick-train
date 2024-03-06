@@ -12,6 +12,7 @@ else()
 endif()
 
 add_executable(BrickTrain
+  FileLoader.cpp
   Main.cpp
   ResourceFile.cpp
   StringTable.cpp
