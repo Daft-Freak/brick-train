@@ -96,7 +96,13 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
 
         char *objectName = reinterpret_cast<char *>(objectData + 16);
 
-        objects.emplace_back(Object{objectId, objectX, objectY, objectName, {}});
+        // attempt to get texture
+        std::shared_ptr<SDL_Texture> texture;
+
+        if(renderer)
+            texture = texLoader.loadTexture(renderer, objectId);
+
+        objects.emplace_back(Object{objectId, objectX, objectY, objectName, texture, {}});
 
         std::cout << "object " << objectId << " (\"" << objectName << "\") at " << objectX << ", " << objectY << std::hex;
 
@@ -145,9 +151,16 @@ void World::render(SDL_Renderer *renderer)
 
     for(auto &object : objects)
     {
-        // TODO: images, layers, everything else
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        SDL_Rect r{object.x * 16, object.y * 16, 16, 16};
-        SDL_RenderFillRect(renderer, &r);
+        // TODO: layers, everything else
+        if(object.texture)
+        {
+            // TODO: we need info from the dat files to get the real size
+            SDL_Rect r = {};
+            SDL_QueryTexture(object.texture.get(), nullptr, nullptr, &r.w, &r.h);
+            r.x = object.x * 16;
+            r.y = object.y * 16;
+
+            SDL_RenderCopy(renderer, object.texture.get(), nullptr, &r);
+        }
     }
 }

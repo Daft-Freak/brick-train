@@ -31,6 +31,8 @@ private:
         uint16_t x, y;
         std::string name;
 
+        std::shared_ptr<SDL_Texture> texture;
+
         std::vector<Minifig> minifigs;
     };
 
