@@ -5,12 +5,16 @@
 
 #include "World.hpp"
 
+World::World(TextureLoader &texLoader) : texLoader(texLoader)
+{
+}
+
 World::~World()
 {
     delete[] tileObjectType;
 }
 
-bool World::loadSave(const std::filesystem::path &path)
+bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
 {
     std::ifstream file(path, std::ios::binary);
 
@@ -40,6 +44,16 @@ bool World::loadSave(const std::filesystem::path &path)
     uint16_t numTrains = header[12] | header[13] << 8;
 
     char *backdropName = reinterpret_cast<char *>(header + 14);
+
+    if(renderer)
+    {
+        std::string backdropPath("backdrop/");
+
+        // build path, default to "backdrop"
+        backdropPath.append(backdropName[0] ? backdropName : "backdrop").append(".bmp");
+
+        backdrop = texLoader.loadTexture(renderer, backdropPath);
+    }
 
     // the rest is usually 0
 #ifndef NDEBUG
@@ -121,9 +135,17 @@ bool World::loadSave(const std::filesystem::path &path)
 
 void World::render(SDL_Renderer *renderer)
 {
+    if(backdrop)
+    {
+        // TODO: repeat/scale?
+        SDL_Rect r = {};
+        SDL_QueryTexture(backdrop.get(), nullptr, nullptr, &r.w, &r.h);
+        SDL_RenderCopy(renderer, backdrop.get(), nullptr, &r);
+    }
+
     for(auto &object : objects)
     {
-        // TODO: backdrop, images, layers, everything else
+        // TODO: images, layers, everything else
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_Rect r{object.x * 16, object.y * 16, 16, 16};
         SDL_RenderFillRect(renderer, &r);

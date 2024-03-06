@@ -3,6 +3,8 @@
 
 #include <SDL.h>
 
+#include "FileLoader.hpp"
+#include "TextureLoader.hpp"
 #include "World.hpp"
 
 namespace fs = std::filesystem;
@@ -37,10 +39,13 @@ int main(int argc, char *argv[])
         SDL_free(tmp);
     }
 
-    // find data path
-    fs::path dataPath = basePath / "data";
-    if(!fs::exists(dataPath))
-        dataPath = basePath.parent_path() / "data";
+    // setup loaders/resources
+    FileLoader fileLoader(basePath);
+    TextureLoader texLoader(fileLoader);
+
+    fileLoader.addResourceFile("disc/art-res/resource");
+
+    auto &dataPath = fileLoader.getDataPath();
 
     // SDL init
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
@@ -53,9 +58,9 @@ int main(int argc, char *argv[])
 
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
-    World testWorld;
+    World testWorld(texLoader);
 
-    testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV");
+    testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV", renderer);
 
     while(!quit)
     {

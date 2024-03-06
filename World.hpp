@@ -6,12 +6,15 @@
 #include <string>
 #include <vector>
 
+#include "TextureLoader.hpp"
+
 class World final
 {
 public:
+    World(TextureLoader &texLoader);
     ~World();
 
-    bool loadSave(const std::filesystem::path &path);
+    bool loadSave(const std::filesystem::path &path, SDL_Renderer *renderer);
 
     void render(SDL_Renderer *renderer);
 
@@ -31,10 +34,14 @@ private:
         std::vector<Minifig> minifigs;
     };
 
+    TextureLoader &texLoader;
+
     uint16_t width = 0;
     uint16_t height = 0;
 
     uint8_t *tileObjectType = nullptr;
+
+    std::shared_ptr<SDL_Texture> backdrop;
 
     std::vector<Object> objects;
 };
