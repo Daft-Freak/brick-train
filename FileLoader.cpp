@@ -81,6 +81,9 @@ FileLoader::FileLoader(std::filesystem::path basePath) : basePath(std::move(base
     if(!fs::exists(dataPath))
         dataPath = this->basePath.parent_path() / "data";
     // TODO: maybe try harder
+
+    // load the string table
+    stringTable.loadFromExe(dataPath / "disc/Exe/loco.exe");
 }
 
 std::unique_ptr<std::istream> FileLoader::openResourceFile(std::string_view relPath)
@@ -103,6 +106,25 @@ std::unique_ptr<std::istream> FileLoader::openResourceFile(std::string_view relP
     }
 
     return nullptr;
+}
+
+std::unique_ptr<std::istream> FileLoader::openResourceFile(uint32_t id, std::string_view ext)
+{
+    auto relPath = stringTable.lookupString(id);
+
+    if(!relPath)
+        return nullptr;
+
+    std::string pathStr(relPath.value());
+
+    // convert slashes
+    for(auto &c : pathStr)
+    {
+        if(c == '\\')
+            c = '/';
+    }
+
+    return openResourceFile(pathStr.append(ext));
 }
 
 const fs::path &FileLoader::getDataPath()
