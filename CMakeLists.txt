@@ -14,6 +14,7 @@ endif()
 add_executable(BrickTrain
   FileLoader.cpp
   Main.cpp
+  ObjectData.cpp
   ResourceFile.cpp
   StringTable.cpp
   TextureLoader.cpp
