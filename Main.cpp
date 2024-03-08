@@ -64,9 +64,17 @@ int main(int argc, char *argv[])
 
     testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV", renderer);
 
+    uint32_t lastTime = SDL_GetTicks();
+
     while(!quit)
     {
         pollEvents();
+
+        uint32_t now = SDL_GetTicks();
+        auto delta = now - lastTime;
+        lastTime = now;
+
+        testWorld.update(delta);
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);

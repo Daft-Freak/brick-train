@@ -93,7 +93,11 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
         uint16_t objectX = objectData[2] | objectData[3] << 8;
         uint16_t objectY = objectData[4] | objectData[5] << 8;
 
-        // 10 bytes unknown?
+        // 6-7 are probably padding to align the oversized frameset index
+
+        int framesetIndex = objectData[8] | objectData[9] << 8 | objectData[10] << 16 | objectData[11] << 24; // this is waaay bigger than it needs to be
+
+        // 4 bytes unknown?
 
         char *objectName = reinterpret_cast<char *>(objectData + 16);
 
@@ -108,11 +112,13 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
 
         auto &object = objects.emplace_back(objectId, objectX, objectY, objectName, texture, data);
 
+        object.setAnimation(framesetIndex);
+
         bool hasUnk = false;
 
         for(int j = 6; j < 16; j++)
         {
-            if(objectData[j])
+            if((j < 8 || j >= 12) && objectData[j])
             {
                 if(!hasUnk)
                     std::cout << "object " << objectId << " (\"" << objectName << "\") at " << objectX << ", " << objectY << std::hex;
@@ -150,6 +156,12 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
     return true;
 }
 
+void World::update(uint32_t deltaMs)
+{
+    for(auto &object : objects)
+        object.update(deltaMs);
+}
+
 void World::render(SDL_Renderer *renderer)
 {
     if(backdrop)
@@ -176,12 +188,50 @@ World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std
 {
     // set the default animation
     if(data && data->defaultFrameset != -1)
-    {
-        currentAnimation = data->defaultFrameset;
-        assert(currentAnimation < data->numFramesets);
+        setAnimation(data->defaultFrameset);
+}
 
-        auto &frameset = data->framesets[currentAnimation];
-        currentAnimationFrame = frameset.startFrame;
+void World::Object::update(uint32_t deltaMs)
+{
+    if(!data)
+        return;
+
+    // TODO: sounds
+    if(currentAnimation != -1)
+    {
+        animationTimer -= deltaMs;
+
+        while(animationTimer < 0)
+        {
+            auto &frameset = data->framesets[currentAnimation];
+
+            if(nextAnimation != -1)
+            {
+                // delayed frameset change
+                currentAnimation = nextAnimation;
+                currentAnimationFrame = data->framesets[currentAnimation].startFrame;
+                nextAnimation = -1;
+            }
+            else
+                currentAnimationFrame += frameset.splitFrames ? 2 : 1;
+
+            if(currentAnimationFrame > frameset.endFrame)
+            {
+                // move to next animation if one set
+                if(frameset.nextFrameSet != -1)
+                {
+                    nextAnimation = frameset.nextFrameSet;
+                    currentAnimationFrame = frameset.endFrame; // hold the last frame
+                    animationTimer = frameset.restartDelay * 1000;
+                    continue;
+                }
+
+                // otherwise restart
+                currentAnimationFrame = frameset.startFrame;
+            }
+
+            animationTimer += getFrameDelay();
+        }
     }
 }
 
@@ -235,4 +285,26 @@ const ObjectData::Frameset *World::Object::getCurrentFrameset() const
         return &data->framesets[currentAnimation];
 
     return nullptr;
+}
+
+int World::Object::getFrameDelay() const
+{
+    auto frameset = getCurrentFrameset();
+    if(frameset)
+        return std::max(1, frameset->delay) * 30; // bit of a guess
+
+    return 0;
+}
+
+void World::Object::setAnimation(int index)
+{
+    if(index < 0 || !data || index > data->numFramesets)
+        return;
+
+    currentAnimation = index;
+
+    auto &frameset = data->framesets[currentAnimation];
+    currentAnimationFrame = frameset.startFrame;
+
+    animationTimer = getFrameDelay();
 }
