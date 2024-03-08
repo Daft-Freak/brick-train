@@ -15,6 +15,7 @@ add_executable(BrickTrain
   FileLoader.cpp
   Main.cpp
   ObjectData.cpp
+  ObjectDataStore.cpp
   ResourceFile.cpp
   StringTable.cpp
   TextureLoader.cpp
