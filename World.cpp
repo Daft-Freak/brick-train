@@ -106,7 +106,7 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
         // load object data
         auto data = objectDataStore.getObject(objectId);
 
-        objects.emplace_back(Object{objectId, objectX, objectY, objectName, texture, data, {}});
+        auto &object = objects.emplace_back(objectId, objectX, objectY, objectName, texture, data);
 
         bool hasUnk = false;
 
@@ -134,7 +134,7 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
             // 4 bytes unknown (possibly uninitialised data?)
             char *minifigName = reinterpret_cast<char *>(minifigData + 8);
 
-            objects.back().minifigs.emplace_back(Minifig{minifigId, minifigName});
+            object.minifigs.emplace_back(Minifig{minifigId, minifigName});
 
             if(minifigId)
             {
@@ -175,4 +175,8 @@ void World::render(SDL_Renderer *renderer)
             SDL_RenderCopy(renderer, object.texture.get(), &sr, &dr);
         }
     }
+}
+
+World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
+{
 }

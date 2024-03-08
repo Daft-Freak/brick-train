@@ -26,8 +26,11 @@ private:
         std::string name;
     };
 
-    struct Object
+    class Object
     {
+    public:
+        Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data);
+    
         uint16_t id;
         uint16_t x, y;
         std::string name;
