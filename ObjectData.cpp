@@ -263,7 +263,12 @@ bool ObjectData::loadDatStream(std::istream &stream)
                 assert(split.size() == bitmapSizeX);
                 
                 for(auto &v : split)
-                    bitmapOccupancy.push_back(toInt(v));
+                {
+                    auto iv = toInt(v);
+                    if(iv > maxBitmapOccupancy)
+                        maxBitmapOccupancy = iv;
+                    bitmapOccupancy.push_back(iv);
+                }
 
                 unsigned int totalExpectedSize = bitmapSizeX * bitmapSizeY;
                 if(bitmapOccupancy.size() == totalExpectedSize)

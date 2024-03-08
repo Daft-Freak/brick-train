@@ -30,7 +30,11 @@ private:
     {
     public:
         Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data);
-    
+
+        void render(SDL_Renderer *renderer, int z);
+
+        const ObjectData::Frameset *getCurrentFrameset() const;
+
         uint16_t id;
         uint16_t x, y;
         std::string name;
@@ -39,6 +43,9 @@ private:
         const ObjectData *data;
 
         std::vector<Minifig> minifigs;
+
+        int currentAnimation = -1;
+        int currentAnimationFrame = 0;
     };
 
     TextureLoader &texLoader;

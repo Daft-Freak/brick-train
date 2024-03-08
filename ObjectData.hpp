@@ -27,6 +27,7 @@ public:
     std::vector<int> physicalOccupancy; // TODO: this is really a bitmap
 
     unsigned int bitmapSizeX = 0, bitmapSizeY = 0;
+    int maxBitmapOccupancy = 0;
     std::vector<int> bitmapOccupancy; // TODO: not a bitmap, but values are small
 
     int entryExitOffsets[4] = {0, 0, 0, 0}; // offsets along edges?

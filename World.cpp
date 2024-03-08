@@ -161,22 +161,78 @@ void World::render(SDL_Renderer *renderer)
     }
 
     for(auto &object : objects)
+        object.render(renderer, 1);
+
+    // TODO: minifigs/trains
+
+    for(int z = 2; z < 7; z++)
     {
-        // TODO: layers, ordering, everything else
-        if(object.texture && object.data)
-        {
-            // TODO: animations
-            int w = object.data->bitmapSizeX * 16;
-            int h = object.data->bitmapSizeY * 16;
-
-            SDL_Rect sr{0, 0, w, h};
-            SDL_Rect dr = {object.x * 16, object.y * 16, w, h};
-
-            SDL_RenderCopy(renderer, object.texture.get(), &sr, &dr);
-        }
+        for(auto &object : objects)
+            object.render(renderer, z);
     }
 }
 
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
 {
+    // set the default animation
+    if(data && data->defaultFrameset != -1)
+    {
+        currentAnimation = data->defaultFrameset;
+        assert(currentAnimation < data->numFramesets);
+
+        auto &frameset = data->framesets[currentAnimation];
+        currentAnimationFrame = frameset.startFrame;
+    }
+}
+
+void World::Object::render(SDL_Renderer *renderer, int z)
+{
+    static const int tileSize = 16;
+
+    if(!texture || !data)
+        return;
+
+    // animation info
+    auto frameset = getCurrentFrameset();
+
+    // "split" frames render a second image above the first one
+    bool split = frameset ? frameset->splitFrames : false;
+
+    if(z > data->maxBitmapOccupancy + (split ? 1 : 0))
+        return;
+
+    int w = data->bitmapSizeX * tileSize;
+
+    int frameOffset = currentAnimationFrame * w;
+
+    // copy frame
+    for(int ty = 0; ty < int(data->bitmapSizeY); ty++)
+    {
+        for(int tx = 0; tx < int(data->bitmapSizeX); tx++)
+        {
+            int tileZ = data->bitmapOccupancy[tx + ty * data->bitmapSizeX];
+            
+            SDL_Rect sr{frameOffset + tx * tileSize, ty * tileSize, tileSize, tileSize};
+            SDL_Rect dr{(x + tx) * tileSize, (y + ty) * tileSize, tileSize, tileSize};
+
+            if(tileZ == z)
+                SDL_RenderCopy(renderer, texture.get(), &sr, &dr);
+            // TODO: try to combine?
+
+            if(split && tileZ + 1 == z)
+            {
+                // second layer, a bit higher
+                sr.x += w;
+                SDL_RenderCopy(renderer, texture.get(), &sr, &dr);
+            }
+        }
+    }
+}
+
+const ObjectData::Frameset *World::Object::getCurrentFrameset() const
+{
+    if(currentAnimation != -1)
+        return &data->framesets[currentAnimation];
+
+    return nullptr;
 }
