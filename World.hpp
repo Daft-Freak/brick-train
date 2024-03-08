@@ -6,12 +6,13 @@
 #include <string>
 #include <vector>
 
+#include "ObjectDataStore.hpp"
 #include "TextureLoader.hpp"
 
 class World final
 {
 public:
-    World(TextureLoader &texLoader);
+    World(TextureLoader &texLoader, ObjectDataStore &objectDataStore);
     ~World();
 
     bool loadSave(const std::filesystem::path &path, SDL_Renderer *renderer);
@@ -32,11 +33,13 @@ private:
         std::string name;
 
         std::shared_ptr<SDL_Texture> texture;
+        const ObjectData *data;
 
         std::vector<Minifig> minifigs;
     };
 
     TextureLoader &texLoader;
+    ObjectDataStore &objectDataStore;
 
     uint16_t width = 0;
     uint16_t height = 0;

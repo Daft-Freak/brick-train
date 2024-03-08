@@ -4,8 +4,9 @@
 #include <iostream>
 
 #include "World.hpp"
+#include "ObjectData.hpp"
 
-World::World(TextureLoader &texLoader) : texLoader(texLoader)
+World::World(TextureLoader &texLoader, ObjectDataStore &objectDataStore) : texLoader(texLoader), objectDataStore(objectDataStore)
 {
 }
 
@@ -102,7 +103,10 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
         if(renderer)
             texture = texLoader.loadTexture(renderer, objectId);
 
-        objects.emplace_back(Object{objectId, objectX, objectY, objectName, texture, {}});
+        // load object data
+        auto data = objectDataStore.getObject(objectId);
+
+        objects.emplace_back(Object{objectId, objectX, objectY, objectName, texture, data, {}});
 
         bool hasUnk = false;
 

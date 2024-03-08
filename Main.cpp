@@ -4,6 +4,7 @@
 #include <SDL.h>
 
 #include "FileLoader.hpp"
+#include "ObjectDataStore.hpp"
 #include "TextureLoader.hpp"
 #include "World.hpp"
 
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
     // setup loaders/resources
     FileLoader fileLoader(basePath);
     TextureLoader texLoader(fileLoader);
+    ObjectDataStore objStore(fileLoader);
 
     fileLoader.addResourceFile("disc/art-res/resource");
 
@@ -58,7 +60,7 @@ int main(int argc, char *argv[])
 
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
-    World testWorld(texLoader);
+    World testWorld(texLoader, objStore);
 
     testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV", renderer);
 
