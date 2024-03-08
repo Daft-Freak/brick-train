@@ -162,16 +162,17 @@ void World::render(SDL_Renderer *renderer)
 
     for(auto &object : objects)
     {
-        // TODO: layers, everything else
-        if(object.texture)
+        // TODO: layers, ordering, everything else
+        if(object.texture && object.data)
         {
-            // TODO: we need info from the dat files to get the real size
-            SDL_Rect r = {};
-            SDL_QueryTexture(object.texture.get(), nullptr, nullptr, &r.w, &r.h);
-            r.x = object.x * 16;
-            r.y = object.y * 16;
+            // TODO: animations
+            int w = object.data->bitmapSizeX * 16;
+            int h = object.data->bitmapSizeY * 16;
 
-            SDL_RenderCopy(renderer, object.texture.get(), nullptr, &r);
+            SDL_Rect sr{0, 0, w, h};
+            SDL_Rect dr = {object.x * 16, object.y * 16, w, h};
+
+            SDL_RenderCopy(renderer, object.texture.get(), &sr, &dr);
         }
     }
 }
