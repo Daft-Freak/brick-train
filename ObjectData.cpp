@@ -363,5 +363,5 @@ bool ObjectData::loadDatStream(std::istream &stream)
         
     }
 
-    return false;
+    return true;
 }
