@@ -12,9 +12,9 @@ public:
     FileLoader(std::filesystem::path basePath);
 
     std::unique_ptr<std::istream> openResourceFile(std::string_view relPath);
-    std::unique_ptr<std::istream> openResourceFile(uint32_t id, std::string_view ext);
+    std::unique_ptr<std::istream> openResourceFile(int32_t id, std::string_view ext);
 
-    std::optional<std::string> lookupId(uint32_t id, std::string_view ext);
+    std::optional<std::string> lookupId(int32_t id, std::string_view ext);
 
     const std::filesystem::path &getDataPath();
 

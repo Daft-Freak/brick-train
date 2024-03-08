@@ -123,7 +123,7 @@ std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, 
     return texPtr;
 }
 
-std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, uint32_t id)
+std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, int32_t id)
 {
     // this would use openResourceFile(id), but we need to normalise id/path for the cache
     auto path = fileLoader.lookupId(id, ".bmp");

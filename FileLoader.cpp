@@ -108,7 +108,7 @@ std::unique_ptr<std::istream> FileLoader::openResourceFile(std::string_view relP
     return nullptr;
 }
 
-std::unique_ptr<std::istream> FileLoader::openResourceFile(uint32_t id, std::string_view ext)
+std::unique_ptr<std::istream> FileLoader::openResourceFile(int32_t id, std::string_view ext)
 {
     auto relPath = lookupId(id, ext);
 
@@ -118,8 +118,11 @@ std::unique_ptr<std::istream> FileLoader::openResourceFile(uint32_t id, std::str
     return openResourceFile(relPath.value());
 }
 
-std::optional<std::string> FileLoader::lookupId(uint32_t id, std::string_view ext)
+std::optional<std::string> FileLoader::lookupId(int32_t id, std::string_view ext)
 {
+    if(id < 0)
+        return {};
+
     auto relPath = stringTable.lookupString(id);
 
     if(!relPath)
