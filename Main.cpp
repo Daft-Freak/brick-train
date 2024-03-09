@@ -12,13 +12,21 @@ namespace fs = std::filesystem;
 
 static bool quit = false;
 
-static void pollEvents()
+static void pollEvents(World &world)
 {
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {
         switch(event.type)
         {
+            case SDL_WINDOWEVENT:
+            {
+                if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+                {
+                    world.setWindowSize(event.window.data1, event.window.data2);
+                }
+                break;
+            }
             case SDL_QUIT:
                 quit = true;
                 break;
@@ -62,13 +70,14 @@ int main(int argc, char *argv[])
 
     World testWorld(texLoader, objStore);
 
-    testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV", renderer);
+    testWorld.setWindowSize(screenWidth, screenHeight);
+
 
     uint32_t lastTime = SDL_GetTicks();
 
     while(!quit)
     {
-        pollEvents();
+        pollEvents(testWorld);
 
         uint32_t now = SDL_GetTicks();
         auto delta = now - lastTime;

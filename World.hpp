@@ -21,7 +21,11 @@ public:
 
     void render(SDL_Renderer *renderer);
 
+    void setWindowSize(unsigned int windowWidth, unsigned int windowHeight);
+
 private:
+    void clampScroll();
+
     struct Minifig
     {
         uint32_t id;
@@ -35,8 +39,8 @@ private:
 
         void update(uint32_t deltaMs);
 
-        void render(SDL_Renderer *renderer, int z);
-        void renderDebug(SDL_Renderer *renderer);
+        void render(SDL_Renderer *renderer, int scrollX, int scrollY, int z);
+        void renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY);
 
         const ObjectData::Frameset *getCurrentFrameset() const;
         int getFrameDelay() const;
@@ -59,6 +63,9 @@ private:
 
     TextureLoader &texLoader;
     ObjectDataStore &objectDataStore;
+
+    unsigned int windowWidth = 0, windowHeight = 0;
+    int scrollX = 0, scrollY = 0;
 
     uint16_t width = 0;
     uint16_t height = 0;
