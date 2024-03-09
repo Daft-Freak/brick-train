@@ -36,6 +36,7 @@ private:
         void update(uint32_t deltaMs);
 
         void render(SDL_Renderer *renderer, int z);
+        void renderDebug(SDL_Renderer *renderer);
 
         const ObjectData::Frameset *getCurrentFrameset() const;
         int getFrameDelay() const;

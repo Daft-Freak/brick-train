@@ -279,6 +279,60 @@ void World::Object::render(SDL_Renderer *renderer, int z)
     }
 }
 
+void World::Object::renderDebug(SDL_Renderer *renderer)
+{
+    static const int tileSize = 16;
+
+    if(!data)
+        return;
+
+    // "coords"
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+    for(auto &coord : data->coords)
+        SDL_RenderDrawPoint(renderer, std::get<0>(coord) + x * tileSize, std::get<1>(coord) + y * tileSize);
+
+    // the other set (points/cross)
+    SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+
+    for(auto &coord : data->altCoords)
+        SDL_RenderDrawPoint(renderer, std::get<0>(coord) + x * tileSize, std::get<1>(coord) + y * tileSize);
+
+    // entry/exit
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+    // left
+    int px = 0;
+    int py = data->entryExitOffsets[0];
+    if(py)
+        SDL_RenderDrawPoint(renderer, px + x * tileSize, py + y * tileSize);
+
+    // bottom
+    px = data->entryExitOffsets[1];
+    py = data->bitmapSizeY * tileSize - 1;
+    if(px)
+        SDL_RenderDrawPoint(renderer, px + x * tileSize, py + y * tileSize);
+
+    // right
+    px = data->bitmapSizeX * tileSize - 1;
+    py = data->entryExitOffsets[2];
+    if(py)
+        SDL_RenderDrawPoint(renderer, px + x * tileSize, py + y * tileSize);
+
+    // top
+    px = data->entryExitOffsets[3];
+    py = 0;
+    if(px)
+        SDL_RenderDrawPoint(renderer, px + x * tileSize, py + y * tileSize);
+
+    // free to roam
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    SDL_Rect r{data->freeToRoam[0] + x * tileSize, data->freeToRoam[1] + y * tileSize, data->freeToRoam[2] - data->freeToRoam[0], data->freeToRoam[3] - data->freeToRoam[1]};
+    
+    if(r.w && r.h)
+        SDL_RenderDrawRect(renderer, &r);
+}
+
 const ObjectData::Frameset *World::Object::getCurrentFrameset() const
 {
     if(currentAnimation != -1)
