@@ -36,6 +36,10 @@ static void pollEvents(World &world)
             case SDL_QUIT:
                 quit = true;
                 break;
+
+            default:
+                world.handleEvent(event);
+                break;
         }
     }
 }

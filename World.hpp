@@ -19,6 +19,8 @@ public:
 
     void update(uint32_t deltaMs);
 
+    void handleEvent(SDL_Event &event);
+
     void render(SDL_Renderer *renderer);
 
     void setWindowSize(unsigned int windowWidth, unsigned int windowHeight);

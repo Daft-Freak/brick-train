@@ -164,6 +164,87 @@ void World::update(uint32_t deltaMs)
         object.update(deltaMs);
 }
 
+void World::handleEvent(SDL_Event &event)
+{
+    switch(event.type)
+    {
+        case SDL_MOUSEWHEEL:
+        {
+            if(event.wheel.y != 0)
+            {
+                int dir = event.wheel.y < 0 ? -1 : 1;
+                if(event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+                    dir *= -1;
+
+                auto oldZoom = zoom;
+            
+                zoom += event.wheel.y;
+
+                // clamp to a possibly sensible range
+                zoom = std::min(4.0f, std::max(1.0f, zoom));
+
+                // adjust scroll
+                // need to convert coords for hidpi
+                auto renderer = SDL_GetRenderer(SDL_GetWindowFromID(event.wheel.windowID));
+                float logMouseX, logMouseY;
+                SDL_RenderWindowToLogical(renderer, event.wheel.mouseX, event.wheel.mouseY, &logMouseX, &logMouseY);
+
+                // convert to world coord
+                float mouseWorldX = (logMouseX + scrollX) / oldZoom;
+                float mouseWorldY = (logMouseY + scrollY) / oldZoom;
+
+                // convert back to screen using the new zoom
+                float newMouseX = mouseWorldX * zoom - scrollX;
+                float newMouseY = mouseWorldY * zoom - scrollY;
+
+                // compensate for the difference
+                scrollX += (newMouseX - logMouseX);
+                scrollY += (newMouseY - logMouseY);
+
+                clampScroll();
+            }
+            break;
+        }
+
+        case SDL_KEYUP:
+        {
+            // some basic scrolling
+            // TODO: mouse scrolling?
+            // TODO: smooth scroll/zoom
+            switch(event.key.keysym.scancode)
+            {
+                case SDL_SCANCODE_W:
+                case SDL_SCANCODE_UP:
+                    scrollY -= tileSize;
+                    clampScroll();
+                    break;
+
+                case SDL_SCANCODE_S:
+                case SDL_SCANCODE_DOWN:
+                    scrollY += tileSize;
+                    clampScroll();
+                    break;
+
+                case SDL_SCANCODE_A:
+                case SDL_SCANCODE_LEFT:
+                    scrollX -= tileSize;
+                    clampScroll();
+                    break;
+
+                case SDL_SCANCODE_D:
+                case SDL_SCANCODE_RIGHT:
+                    scrollX += tileSize;
+                    clampScroll();
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+        }
+    }
+}
+
 void World::render(SDL_Renderer *renderer)
 {
     if(backdrop)
