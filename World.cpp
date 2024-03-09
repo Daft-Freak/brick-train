@@ -196,8 +196,6 @@ void World::setWindowSize(unsigned int windowWidth, unsigned int windowHeight)
 
 void World::clampScroll()
 {
-    static const int tileSize = 16;
-
     unsigned int worldWidth = width * tileSize;
     unsigned int worldHeight = height * tileSize;
 
@@ -274,8 +272,6 @@ void World::Object::update(uint32_t deltaMs)
 
 void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int z)
 {
-    static const int tileSize = 16;
-
     if(!texture || !data)
         return;
 
@@ -318,8 +314,6 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
 
 void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY)
 {
-    static const int tileSize = 16;
-
     if(!data)
         return;
 

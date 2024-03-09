@@ -61,6 +61,8 @@ private:
         int animationTimer = 0;
     };
 
+    static const int tileSize = 16;
+
     TextureLoader &texLoader;
     ObjectDataStore &objectDataStore;
 
