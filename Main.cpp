@@ -23,7 +23,13 @@ static void pollEvents(World &world)
             {
                 if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                 {
-                    world.setWindowSize(event.window.data1, event.window.data2);
+                    // get the real size used by the renderer
+                    auto window = SDL_GetWindowFromID(event.window.windowID);
+                    auto renderer = SDL_GetRenderer(window);
+                    int w, h;
+                    SDL_GetRendererOutputSize(renderer, &w, &h);
+
+                    world.setWindowSize(w, h);
                 }
                 break;
             }
@@ -64,7 +70,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    auto window = SDL_CreateWindow("Brick Train", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, 0);
+    auto window = SDL_CreateWindow("Brick Train", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_ALLOW_HIGHDPI);
 
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
