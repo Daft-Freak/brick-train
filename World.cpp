@@ -171,18 +171,20 @@ void World::render(SDL_Renderer *renderer)
         // TODO: repeat/scale?
         SDL_Rect r = {-scrollX, -scrollY, 0, 0};
         SDL_QueryTexture(backdrop.get(), nullptr, nullptr, &r.w, &r.h);
+        r.w *= zoom;
+        r.h *= zoom;
         SDL_RenderCopy(renderer, backdrop.get(), nullptr, &r);
     }
 
     for(auto &object : objects)
-        object.render(renderer, scrollX, scrollY, 1);
+        object.render(renderer, scrollX, scrollY, 1, zoom);
 
     // TODO: minifigs/trains
 
     for(int z = 2; z < 7; z++)
     {
         for(auto &object : objects)
-            object.render(renderer, scrollX, scrollY, z);
+            object.render(renderer, scrollX, scrollY, z, zoom);
     }
 }
 
@@ -196,8 +198,8 @@ void World::setWindowSize(unsigned int windowWidth, unsigned int windowHeight)
 
 void World::clampScroll()
 {
-    unsigned int worldWidth = width * tileSize;
-    unsigned int worldHeight = height * tileSize;
+    unsigned int worldWidth = width * tileSize * zoom;
+    unsigned int worldHeight = height * tileSize * zoom;
 
     auto clampDim = [](unsigned int worldDim, unsigned int windowDim, int &scroll)
     {
@@ -270,7 +272,7 @@ void World::Object::update(uint32_t deltaMs)
     }
 }
 
-void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int z)
+void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int z, float zoom)
 {
     if(!texture || !data)
         return;
@@ -296,7 +298,12 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
             int tileZ = data->bitmapOccupancy[tx + ty * data->bitmapSizeX];
             
             SDL_Rect sr{frameOffset + tx * tileSize, ty * tileSize, tileSize, tileSize};
-            SDL_Rect dr{(x + tx) * tileSize - scrollX, (y + ty) * tileSize - scrollY, tileSize, tileSize};
+            SDL_Rect dr{
+                static_cast<int>((x + tx) * tileSize * zoom) - scrollX,
+                static_cast<int>((y + ty) * tileSize * zoom) - scrollY,
+                static_cast<int>(tileSize * zoom),
+                static_cast<int>(tileSize * zoom)
+            };
 
             if(tileZ == z)
                 SDL_RenderCopy(renderer, texture.get(), &sr, &dr);
@@ -312,7 +319,7 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     }
 }
 
-void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY)
+void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
 {
     if(!data)
         return;
@@ -320,14 +327,24 @@ void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY
     // "coords"
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
+    auto getXPos = [this, zoom, scrollX](int xOff) -> int
+    {
+        return (x * tileSize + xOff) * zoom - scrollX;
+    };
+
+    auto getYPos = [this, zoom, scrollY](int yOff) -> int
+    {
+        return (y * tileSize + yOff) * zoom - scrollY;
+    };
+
     for(auto &coord : data->coords)
-        SDL_RenderDrawPoint(renderer, std::get<0>(coord) + x * tileSize - scrollX, std::get<1>(coord) + y * tileSize - scrollY);
+        SDL_RenderDrawPoint(renderer, getXPos(std::get<0>(coord)), getYPos(std::get<1>(coord)));
 
     // the other set (points/cross)
     SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
 
     for(auto &coord : data->altCoords)
-        SDL_RenderDrawPoint(renderer, std::get<0>(coord) + x * tileSize - scrollX, std::get<1>(coord) + y * tileSize - scrollY);
+        SDL_RenderDrawPoint(renderer, getXPos(std::get<0>(coord)), getYPos(std::get<1>(coord)));
 
     // entry/exit
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
@@ -336,32 +353,36 @@ void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY
     int px = 0;
     int py = data->entryExitOffsets[0];
     if(py)
-        SDL_RenderDrawPoint(renderer, px + x * tileSize - scrollX, py + y * tileSize - scrollY);
+        SDL_RenderDrawPoint(renderer, getXPos(px), getYPos(py));
 
     // bottom
     px = data->entryExitOffsets[1];
     py = data->bitmapSizeY * tileSize - 1;
     if(px)
-        SDL_RenderDrawPoint(renderer, px + x * tileSize - scrollX, py + y * tileSize - scrollY);
+        SDL_RenderDrawPoint(renderer, getXPos(px), getYPos(py));
 
     // right
     px = data->bitmapSizeX * tileSize - 1;
     py = data->entryExitOffsets[2];
     if(py)
-        SDL_RenderDrawPoint(renderer, px + x * tileSize - scrollX, py + y * tileSize - scrollY);
+        SDL_RenderDrawPoint(renderer, getXPos(px), getYPos(py));
 
     // top
     px = data->entryExitOffsets[3];
     py = 0;
     if(px)
-        SDL_RenderDrawPoint(renderer, px + x * tileSize - scrollX, py + y * tileSize - scrollY);
+        SDL_RenderDrawPoint(renderer, getXPos(px), getYPos(py));
 
     // free to roam
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-    SDL_Rect r{data->freeToRoam[0] + x * tileSize - scrollX, data->freeToRoam[1] + y * tileSize - scrollY, data->freeToRoam[2] - data->freeToRoam[0], data->freeToRoam[3] - data->freeToRoam[1]};
+    SDL_Rect r{getXPos(data->freeToRoam[0]), getYPos(data->freeToRoam[1]), data->freeToRoam[2] - data->freeToRoam[0], data->freeToRoam[3] - data->freeToRoam[1]};
     
     if(r.w && r.h)
+    {
+        r.w *= zoom;
+        r.h *= zoom;
         SDL_RenderDrawRect(renderer, &r);
+    }
 }
 
 const ObjectData::Frameset *World::Object::getCurrentFrameset() const

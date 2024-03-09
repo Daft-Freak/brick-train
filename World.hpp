@@ -39,8 +39,8 @@ private:
 
         void update(uint32_t deltaMs);
 
-        void render(SDL_Renderer *renderer, int scrollX, int scrollY, int z);
-        void renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY);
+        void render(SDL_Renderer *renderer, int scrollX, int scrollY, int z, float zoom);
+        void renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom);
 
         const ObjectData::Frameset *getCurrentFrameset() const;
         int getFrameDelay() const;
@@ -68,6 +68,7 @@ private:
 
     unsigned int windowWidth = 0, windowHeight = 0;
     int scrollX = 0, scrollY = 0;
+    float zoom = 1.0f;
 
     uint16_t width = 0;
     uint16_t height = 0;
