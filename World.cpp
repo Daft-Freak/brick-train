@@ -217,17 +217,19 @@ void World::Object::update(uint32_t deltaMs)
 
             if(currentAnimationFrame > frameset.endFrame)
             {
+                currentAnimationFrame = frameset.endFrame; // hold the last frame
+
                 // move to next animation if one set
                 if(frameset.nextFrameSet != -1)
                 {
                     nextAnimation = frameset.nextFrameSet;
-                    currentAnimationFrame = frameset.endFrame; // hold the last frame
                     animationTimer = frameset.restartDelay * 1000;
                     continue;
                 }
 
-                // otherwise restart
-                currentAnimationFrame = frameset.startFrame;
+                // otherwise stop
+                currentAnimation = frameset.nextFrameSet;
+                break;
             }
 
             animationTimer += getFrameDelay();
