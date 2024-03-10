@@ -320,8 +320,8 @@ bool ObjectData::loadDatStream(std::istream &stream)
                     fs.nextFrameSet = toInt(split[6]);
                     fs.soundId = toInt(split[7]);
                     fs.replayDelay = toInt(split[8]);
-                    fs.flipX = split[9] == "1";
-                    // split[10]? this doesn't seem to be documented in the comments... or used
+                    fs.priority = toInt(split[9]);
+                    fs.flipX = split[10] == "1";
 
                     if(split[10] != "0")
                         std::cout << "frameset unk " << line << "\n";

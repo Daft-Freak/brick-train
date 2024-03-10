@@ -18,6 +18,7 @@ public:
         int nextFrameSet = 0;
         int soundId = 0;
         int replayDelay = 0;
+        int priority = 0;
         bool flipX = false;
     };
 
