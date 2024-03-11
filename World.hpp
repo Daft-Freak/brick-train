@@ -15,7 +15,7 @@ public:
     World(TextureLoader &texLoader, ObjectDataStore &objectDataStore);
     ~World();
 
-    bool loadSave(const std::filesystem::path &path, SDL_Renderer *renderer);
+    bool loadSave(const std::filesystem::path &path);
 
     void update(uint32_t deltaMs);
 

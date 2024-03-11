@@ -15,7 +15,7 @@ World::~World()
     delete[] tileObjectType;
 }
 
-bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
+bool World::loadSave(const std::filesystem::path &path)
 {
     std::ifstream file(path, std::ios::binary);
 
@@ -44,17 +44,15 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
     uint32_t numObjects = header[8] | header[9] << 8 | header[10] << 16 | header[11] << 24;
     uint16_t numTrains = header[12] | header[13] << 8;
 
+    // load backdrop
     char *backdropName = reinterpret_cast<char *>(header + 14);
 
-    if(renderer)
-    {
-        std::string backdropPath("backdrop/");
+    std::string backdropPath("backdrop/");
 
-        // build path, default to "backdrop"
-        backdropPath.append(backdropName[0] ? backdropName : "backdrop").append(".bmp");
+    // build path, default to "backdrop"
+    backdropPath.append(backdropName[0] ? backdropName : "backdrop").append(".bmp");
 
-        backdrop = texLoader.loadTexture(backdropPath);
-    }
+    backdrop = texLoader.loadTexture(backdropPath);
 
     // the rest is usually 0
 #ifndef NDEBUG
@@ -102,10 +100,7 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
         char *objectName = reinterpret_cast<char *>(objectData + 16);
 
         // attempt to get texture
-        std::shared_ptr<SDL_Texture> texture;
-
-        if(renderer)
-            texture = texLoader.loadTexture(objectId);
+        auto texture = texLoader.loadTexture(objectId);
 
         // load object data
         auto data = objectDataStore.getObject(objectId);

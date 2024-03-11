@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
 
     testWorld.setWindowSize(screenWidth, screenHeight);
 
+    testWorld.loadSave(dataPath / "disc/art-res/SAVEGAME/4BRIDGES.SAV");
 
     uint32_t lastTime = SDL_GetTicks();
 
