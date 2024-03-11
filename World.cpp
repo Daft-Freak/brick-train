@@ -393,6 +393,8 @@ void World::applyInsertEasterEggs()
                     continue;
             }
 
+            int oldYAdjust = object.data->bitmapSizeY - object.data->physSizeY;
+
             // update object
             if(easterEgg.changeId > 0)
             {
@@ -405,6 +407,12 @@ void World::applyInsertEasterEggs()
                 object.y += yOff;
                 object.data = objectDataStore.getObject(object.id);
                 object.texture = texLoader.loadTexture(object.id);
+
+                // need to adjust if the new object has different phys/bitmap height difference (fountain -> big fountain)
+                int yAdjust = object.data->bitmapSizeY - object.data->physSizeY;
+                object.y += oldYAdjust - yAdjust;
+
+                // FIXME: need to remove overlapping objects
             }
 
             if(easterEgg.changeFrameset != -1)
@@ -419,10 +427,18 @@ void World::applyInsertEasterEggs()
                 int newY = object.y + easterEgg.y;
 
                 // adjust y for physical vs bitmap size
-                newY += object.data->bitmapSizeY - object.data->physSizeY;
+                newY += oldYAdjust;
 
-                auto &object = addObject(easterEgg.newId, newX, newY, "");
-                object.setAnimation(easterEgg.newFrameset);
+                auto &newObject = addObject(easterEgg.newId, newX, newY, "");
+                newObject.setAnimation(easterEgg.newFrameset);
+
+                if(newObject.data && newObject.data->bitmapOccupancy.empty())
+                {
+                    // objects without occupancy seem to use pixel offsets
+                    // (rainbow)
+                    newObject.x += objects[i].x * (tileSize - 1);
+                    newObject.y += (objects[i].y + oldYAdjust) * (tileSize - 1);
+                }
             }
         }
     }
@@ -492,6 +508,30 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
 {
     if(!texture || !data)
         return;
+
+    // if there's no occupancy data, draw the whole thing
+    if(data->bitmapOccupancy.empty() && z == 6)
+    {
+        // ... using pixel offsets
+        SDL_Rect dr{
+            static_cast<int>(x * zoom) - scrollX,
+            static_cast<int>(y * zoom) - scrollY,
+            0,
+            0
+        };
+
+        SDL_QueryTexture(texture.get(), nullptr, nullptr, &dr.w, &dr.h);
+        dr.w *= zoom;
+        dr.h *= zoom;
+
+        // also need to apply hotspot
+        // (definitely used for the rainbow)
+        dr.x -= data->hotspotX * zoom;
+        dr.y -= data->hotspotY * zoom;
+
+        SDL_RenderCopy(renderer, texture.get(), nullptr, &dr);
+        return;
+    }
 
     // animation info
     auto frameset = getCurrentFrameset();
