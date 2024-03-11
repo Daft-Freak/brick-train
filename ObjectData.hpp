@@ -64,6 +64,8 @@ public:
     int maxBitmapOccupancy = 0;
     std::vector<int> bitmapOccupancy; // TODO: not a bitmap, but values are small
 
+    bool semiTransparent = false;
+
     int entryExitOffsets[4] = {0, 0, 0, 0}; // offsets along edges?
 
     int freeToRoam[4] = {0, 0, 0, 0}; // rect? minifigs can wander around in?

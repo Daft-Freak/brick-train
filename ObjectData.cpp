@@ -231,6 +231,8 @@ bool ObjectData::loadDatStream(std::istream &stream)
 
                     state = ParseState::EasterEgg;
                 }
+                else if(line == "semi-transparent")
+                    semiTransparent = true;
                 else if(line == "-9")
                 {} // usually marks the end of some kind of list
                 else if(split[0] == "//")

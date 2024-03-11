@@ -301,6 +301,11 @@ World::Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string
     // load object data
     auto data = objectDataStore.getObject(id);
 
+    // set alpha if semi-transparent
+    // assumes this object is the only user of the image
+    if(data && texture && data->semiTransparent)
+        SDL_SetTextureAlphaMod(texture.get(), 127);
+
     return objects.emplace_back(id, x, y, name, texture, data);
 }
 
