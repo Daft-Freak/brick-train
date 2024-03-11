@@ -67,12 +67,15 @@ TextureLoader::TextureLoader(FileLoader &fileLoader) : fileLoader(fileLoader)
 {
 }
 
-std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, std::string_view relPath)
+std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(std::string_view relPath)
 {
     auto tex = findTexture(relPath);
 
     if(tex)
         return tex;
+
+    if(!renderer)
+        return nullptr;
 
     auto stream = fileLoader.openResourceFile(relPath);
 
@@ -123,7 +126,7 @@ std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, 
     return texPtr;
 }
 
-std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, int32_t id)
+std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(int32_t id)
 {
     // this would use openResourceFile(id), but we need to normalise id/path for the cache
     auto path = fileLoader.lookupId(id, ".bmp");
@@ -131,7 +134,12 @@ std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(SDL_Renderer *renderer, 
     if(!path)
         return nullptr;
 
-    return loadTexture(renderer, path.value());
+    return loadTexture(path.value());
+}
+
+void TextureLoader::setRenderer(SDL_Renderer *renderer)
+{
+    this->renderer = renderer;
 }
 
 std::shared_ptr<SDL_Texture> TextureLoader::findTexture(std::string_view relPath) const

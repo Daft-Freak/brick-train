@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
 
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
+    texLoader.setRenderer(renderer);
+
     World testWorld(texLoader, objStore);
 
     testWorld.setWindowSize(screenWidth, screenHeight);

@@ -53,7 +53,7 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
         // build path, default to "backdrop"
         backdropPath.append(backdropName[0] ? backdropName : "backdrop").append(".bmp");
 
-        backdrop = texLoader.loadTexture(renderer, backdropPath);
+        backdrop = texLoader.loadTexture(backdropPath);
     }
 
     // the rest is usually 0
@@ -105,7 +105,7 @@ bool World::loadSave(const std::filesystem::path &path, SDL_Renderer *renderer)
         std::shared_ptr<SDL_Texture> texture;
 
         if(renderer)
-            texture = texLoader.loadTexture(renderer, objectId);
+            texture = texLoader.loadTexture(objectId);
 
         // load object data
         auto data = objectDataStore.getObject(objectId);
