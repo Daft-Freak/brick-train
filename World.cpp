@@ -144,6 +144,9 @@ bool World::loadSave(const std::filesystem::path &path)
 
     clampScroll();
 
+    // TODO: this should happen when closing the toybox
+    applyInsertEasterEggs();
+
     return true;
 }
 
@@ -326,6 +329,103 @@ World::Object *World::getObjectAt(unsigned int x, unsigned int y)
     }
 
     return nullptr;
+}
+
+void World::applyInsertEasterEggs()
+{
+    for(size_t i = 0; i < objects.size(); i++)
+    {
+        auto &object = objects[i];
+
+        if(!object.data)
+            continue;
+
+        for(auto &easterEgg : object.data->easterEggs)
+        {
+            if(easterEgg.type != ObjectData::EasterEggType::Insert)
+                continue;
+
+            // check ids
+            if(!easterEgg.ids.empty())
+            {
+                std::vector<std::tuple<unsigned int, unsigned int>> toCheck;
+
+                int yOffset = object.data->bitmapSizeY - object.data->physSizeY;
+
+                // check across the top
+                for(unsigned int x = 0; x < object.data->physSizeX; x++)
+                    toCheck.emplace_back(object.x + x, object.y + yOffset - 1);
+
+                // ... down the right side
+                for(int y = -1; y < static_cast<int>(object.data->physSizeY); y++)
+                    toCheck.emplace_back(object.x + object.data->physSizeX, object.y + yOffset + y);
+
+                // ... back across the bottom
+                for(int x = object.data->physSizeX; x >= -1; x--)
+                    toCheck.emplace_back(object.x + x, object.y + yOffset + object.data->physSizeY);
+
+                // ... and up the left size
+                // there is a bug here, the first tile overlaps the previous side
+                // this results in the nessie easter egg working without the top-left flower
+                for(int y = object.data->physSizeY; y >= 0; y--)
+                    toCheck.emplace_back(object.x - 1, object.y + yOffset + y);
+
+                bool match = true;
+
+                for(size_t i = 0; i < easterEgg.ids.size(); i++)
+                {
+                    if(easterEgg.ids[i] == -1)
+                        continue;
+
+                    int x = std::get<0>(toCheck[i]);
+                    int y = std::get<1>(toCheck[i]);
+
+                    auto objAt = getObjectAt(x, y);
+
+                    if(!objAt || objAt->id != easterEgg.ids[i])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if(!match)
+                    continue;
+            }
+
+            // update object
+            if(easterEgg.changeId > 0)
+            {
+                // minifig data is reused as offset
+                int xOff = easterEgg.minifigFrameset;
+                int yOff = easterEgg.minifigTime;
+
+                object.id = easterEgg.changeId;
+                object.x += xOff;
+                object.y += yOff;
+                object.data = objectDataStore.getObject(object.id);
+                object.texture = texLoader.loadTexture(object.id);
+            }
+
+            if(easterEgg.changeFrameset != -1)
+                object.setAnimation(easterEgg.changeFrameset);
+
+            // minifig values are used to store an offset, so skip those
+
+            // create new object
+            if(easterEgg.newId > 0)
+            {
+                int newX = object.x + easterEgg.x;
+                int newY = object.y + easterEgg.y;
+
+                // adjust y for physical vs bitmap size
+                newY += object.data->bitmapSizeY - object.data->physSizeY;
+
+                auto &object = addObject(easterEgg.newId, newX, newY, "");
+                object.setAnimation(easterEgg.newFrameset);
+            }
+        }
+    }
 }
 
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
