@@ -317,7 +317,7 @@ World::Object *World::getObjectAt(unsigned int x, unsigned int y)
         if(x < object.x || y < object.y + yAdjust)
             continue;
 
-        if(x >= object.x + object.data->physSizeZ || y >= object.y + yAdjust + object.data->physSizeY)
+        if(x >= object.x + object.data->physSizeX || y >= object.y + yAdjust + object.data->physSizeY)
             continue;
 
         // check occupancy
