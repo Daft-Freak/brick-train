@@ -99,13 +99,7 @@ bool World::loadSave(const std::filesystem::path &path)
 
         char *objectName = reinterpret_cast<char *>(objectData + 16);
 
-        // attempt to get texture
-        auto texture = texLoader.loadTexture(objectId);
-
-        // load object data
-        auto data = objectDataStore.getObject(objectId);
-
-        auto &object = objects.emplace_back(objectId, objectX, objectY, objectName, texture, data);
+        auto &object = addObject(objectId, objectX, objectY, objectName);
 
         object.setAnimation(framesetIndex);
 
@@ -293,6 +287,17 @@ void World::clampScroll()
 
     clampDim(worldWidth, windowWidth, scrollX);
     clampDim(worldHeight, windowHeight, scrollY);
+}
+
+World::Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
+{
+    // attempt to get texture
+    auto texture = texLoader.loadTexture(id);
+
+    // load object data
+    auto data = objectDataStore.getObject(id);
+
+    return objects.emplace_back(id, x, y, name, texture, data);
 }
 
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)

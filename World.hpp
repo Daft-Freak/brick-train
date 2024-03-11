@@ -26,8 +26,6 @@ public:
     void setWindowSize(unsigned int windowWidth, unsigned int windowHeight);
 
 private:
-    void clampScroll();
-
     struct Minifig
     {
         uint32_t id;
@@ -62,6 +60,10 @@ private:
         int currentAnimationFrame = 0;
         int animationTimer = 0;
     };
+
+    void clampScroll();
+
+    Object &addObject(uint16_t id, uint16_t x, uint16_t y, std::string name);
 
     static const int tileSize = 16;
 
