@@ -300,6 +300,34 @@ World::Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string
     return objects.emplace_back(id, x, y, name, texture, data);
 }
 
+World::Object *World::getObjectAt(unsigned int x, unsigned int y)
+{
+    // TODO: add some kind of lookup table for this
+    for(auto &object : objects)
+    {
+        if(!object.data)
+            continue;
+
+        // check physical coords
+        unsigned int yAdjust = object.data->bitmapSizeY - object.data->physSizeY;
+
+        if(x < object.x || y < object.y + yAdjust)
+            continue;
+
+        if(x >= object.x + object.data->physSizeZ || y >= object.y + yAdjust + object.data->physSizeY)
+            continue;
+
+        // check occupancy
+        int relX = x - object.x;
+        int relY = y - (object.y + yAdjust);
+
+        if(object.data->physicalOccupancy[relX + relY * object.data->physSizeX])
+            return &object;
+    }
+
+    return nullptr;
+}
+
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
 {
     // set the default animation
