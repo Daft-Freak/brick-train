@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <fstream>
@@ -402,17 +403,29 @@ void World::applyInsertEasterEggs()
                 int xOff = easterEgg.minifigFrameset;
                 int yOff = easterEgg.minifigTime;
 
-                object.id = easterEgg.changeId;
                 object.x += xOff;
                 object.y += yOff;
-                object.data = objectDataStore.getObject(object.id);
-                object.texture = texLoader.loadTexture(object.id);
+                auto newData = objectDataStore.getObject(easterEgg.changeId);
 
                 // need to adjust if the new object has different phys/bitmap height difference (fountain -> big fountain)
-                int yAdjust = object.data->bitmapSizeY - object.data->physSizeY;
+                int yAdjust = newData->bitmapSizeY - newData->physSizeY;
                 object.y += oldYAdjust - yAdjust;
 
-                // FIXME: need to remove overlapping objects
+                // remove overlapping objects
+                for(unsigned int y = 0; y < newData->physSizeY; y++)
+                {
+                    for(unsigned int x = 0; x < newData->physSizeX; x++)
+                    {
+                        auto overlapObj = getObjectAt(object.x + x, object.y + y + yAdjust);
+                        // set an invalid id, we'll remove them later
+                        if(overlapObj && overlapObj != &object)
+                            overlapObj->id = 0xFFFF;
+                    }
+                }
+
+                object.id = easterEgg.changeId;
+                object.texture = texLoader.loadTexture(object.id);
+                object.data = newData;
             }
 
             if(easterEgg.changeFrameset != -1)
@@ -442,6 +455,9 @@ void World::applyInsertEasterEggs()
             }
         }
     }
+
+    // clean up removed objects
+    objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.id == 0xFFFF;}), objects.end());
 }
 
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
