@@ -18,6 +18,8 @@ enum class ParseState
 
     CoordList,
     CoordList2,
+
+    EasterEgg
 };
 
 bool ObjectData::loadDatStream(std::istream &stream)
@@ -28,10 +30,16 @@ bool ObjectData::loadDatStream(std::istream &stream)
 
     unsigned int numCoords[2];
 
+    int numIds = 0;
+    EasterEgg easterEgg;
+
     auto splitLine = [](std::string_view str)
     {
         auto chars = " \t";
         std::vector<std::string_view> tokens;
+
+        // remove any leading spaces
+        str = str.substr(str.find_first_not_of(chars));
 
         if(str.empty())
             return tokens;
@@ -198,8 +206,31 @@ bool ObjectData::loadDatStream(std::istream &stream)
                 {
                     name = line.substr(5);
                 }
-                else if(line == "InsertSeq 0 0" || line == "MobileSeq 0 0" || line == "EasterEgg -1 0  -1 0 0  -1 -1 R 0 0" || line == "EasterEgg -1 0  -1 0 0  -1 0 R 0 0")
-                {} // these are unhandled, but ignore the default values
+                else if(split[0] == "InsertSeq" || split[0] == "MobileSeq" || split[0] == "TotalVisits")
+                {
+                    assert(split.size() >= 3);
+
+                    // start of easter egg
+                    if(split[0] == "InsertSeq")
+                        easterEgg.type = EasterEggType::Insert;
+                    else if(split[0] == "MobileSeq")
+                        easterEgg.type = EasterEggType::Mobile;
+                    else
+                        easterEgg.type = EasterEggType::TotalVisits;
+
+                    easterEgg.numMinifigs = toInt(split[1]);
+                    numIds = toInt(split[2]);
+
+                    if(numIds > 0)
+                    {
+                        // start building the id list
+                        // (may continue on the nest line)
+                        for(size_t i = 3; i < split.size(); i++)
+                            easterEgg.ids.push_back(toInt(split[i]));
+                    }
+
+                    state = ParseState::EasterEgg;
+                }
                 else if(line == "-9")
                 {} // usually marks the end of some kind of list
                 else if(split[0] == "//")
@@ -362,6 +393,46 @@ bool ObjectData::loadDatStream(std::istream &stream)
                 {
                     assert(split.size() == 2);
                     altCoords.emplace_back(toInt(split[0]), toInt(split[1]));
+                }
+                break;
+
+            case ParseState::EasterEgg:
+                if(split[0] == "EasterEgg")
+                {
+                    // final part
+                    assert(split.size() == 11);
+
+                    easterEgg.changeId = toInt(split[1]);
+                    easterEgg.changeFrameset = toInt(split[2]);
+
+                    easterEgg.minifigId = toInt(split[3]);
+                    easterEgg.minifigFrameset = toInt(split[4]);
+                    easterEgg.minifigTime = toInt(split[5]);
+
+                    easterEgg.newId = toInt(split[6]);
+                    easterEgg.newFrameset = toInt(split[7]);
+
+                    easterEgg.rws = split[8][0];
+
+                    easterEgg.x = toInt(split[9]);
+                    easterEgg.y = toInt(split[10]);
+
+
+                    assert(numIds == -1 || int(easterEgg.ids.size()) == numIds);
+
+                    // ignore any that can't be triggered
+                    if(easterEgg.numMinifigs || !easterEgg.ids.empty())
+                        easterEggs.emplace_back(std::move(easterEgg));
+
+                    easterEgg = {};
+
+                    state = ParseState::Init;
+                }
+                else
+                {
+                    // should be a continuation of the id list
+                    for(auto &v : split)
+                        easterEgg.ids.push_back(toInt(v));
                 }
                 break;
         }

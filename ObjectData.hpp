@@ -8,6 +8,39 @@ class ObjectData final
 public:
     bool loadDatStream(std::istream &stream);
 
+    enum class EasterEggType
+    {
+        Insert, // when you close the toybox
+        Mobile, // minifigs visiting?
+        TotalVisits
+    };
+
+    struct EasterEgg
+    {
+        EasterEggType type = EasterEggType::Insert;
+    
+        int numMinifigs = 0; // ignored for InsertSeq? 0 disables MobileSeq?
+    
+        std::vector<int> ids;
+
+        // update this object
+        int changeId = 0;
+        int changeFrameset = 0;
+
+        // minifig related
+        int minifigId = -1;
+        int minifigFrameset = 0;
+        int minifigTime = 0; // not entirely sure about this
+
+        // newly created object
+        int newId = -1;
+        int newFrameset = 0;
+
+        char rws = 'R'; // file comments refer to this as "R/W/S", but the only used values are R and U
+
+        int x = 0, y = 0; // for the new object
+    };
+
     struct Frameset
     {
         std::string name;
@@ -53,6 +86,8 @@ public:
     int shiftStart = 0, shiftEnd = 1439;
 
     bool leisureDestination = false;
+
+    std::vector<EasterEgg> easterEggs;
 
     int totalFrames = 0;
     int numFramesets = 0;
