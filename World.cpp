@@ -321,6 +321,12 @@ void World::Object::update(uint32_t deltaMs)
         {
             auto &frameset = data->framesets[currentAnimation];
 
+            // if start > end, play backwards
+            int dir = frameset.startFrame > frameset.endFrame ? -1 : 1;
+
+            if(frameset.splitFrames)
+                dir *= 2;
+
             if(nextAnimation != -1)
             {
                 // delayed frameset change
@@ -329,9 +335,10 @@ void World::Object::update(uint32_t deltaMs)
                 nextAnimation = -1;
             }
             else
-                currentAnimationFrame += frameset.splitFrames ? 2 : 1;
+                currentAnimationFrame += dir;
 
-            if(currentAnimationFrame > frameset.endFrame)
+            // check if we've reached the end
+            if((dir > 0 && currentAnimationFrame > frameset.endFrame) || (dir < 0 && currentAnimationFrame < frameset.endFrame))
             {
                 currentAnimationFrame = frameset.endFrame; // hold the last frame
 
