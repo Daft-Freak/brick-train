@@ -13,6 +13,7 @@ endif()
 
 add_executable(BrickTrain
   FileLoader.cpp
+  IniFile.cpp
   Main.cpp
   ObjectData.cpp
   ObjectDataStore.cpp
