@@ -12,7 +12,7 @@
 class World final
 {
 public:
-    World(TextureLoader &texLoader, ObjectDataStore &objectDataStore);
+    World(FileLoader &fileLoader, TextureLoader &texLoader, ObjectDataStore &objectDataStore);
     ~World();
 
     bool loadSave(const std::filesystem::path &path);
@@ -26,6 +26,20 @@ public:
     void setWindowSize(unsigned int windowWidth, unsigned int windowHeight);
 
 private:
+
+    enum class ObjectMotion
+    {
+        None,
+
+        // used by TimeEvents
+        // the comments in ee.ini claim there are other (unused) values
+        // (World, Random, Centered)
+        Port, // right -> left
+        Starboard, // left -> right
+
+        // there's also something that makes the space shuttle go up
+    };
+
     struct Minifig
     {
         uint32_t id;
@@ -61,6 +75,26 @@ private:
         int animationTimer = 0;
     };
 
+    struct TimeEvent
+    {
+        int startDay, startMonth, endDay, endMonth;
+        int startHour, startMin, endHour, endMin;
+        int resId, resFrameset;
+        int periodMax;
+        ObjectMotion type;
+        int x, y;
+    };
+
+    struct LoadEvent
+    {
+        int startDay, startMonth;
+        int endDay, endMonth;
+
+        int oldId, newId;
+    };
+
+    void loadEasterEggs();
+
     void clampScroll();
 
     Object &addObject(uint16_t id, uint16_t x, uint16_t y, std::string name);
@@ -70,8 +104,12 @@ private:
 
     static const int tileSize = 16;
 
+    FileLoader &fileLoader;
     TextureLoader &texLoader;
     ObjectDataStore &objectDataStore;
+
+    std::vector<TimeEvent> timeEvents;
+    std::vector<LoadEvent> loadEvents;
 
     unsigned int windowWidth = 0, windowHeight = 0;
     int scrollX = 0, scrollY = 0;

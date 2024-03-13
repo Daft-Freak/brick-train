@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
     texLoader.setRenderer(renderer);
 
-    World testWorld(texLoader, objStore);
+    World testWorld(fileLoader, texLoader, objStore);
 
     testWorld.setWindowSize(screenWidth, screenHeight);
 

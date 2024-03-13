@@ -1,14 +1,17 @@
 #include <algorithm>
 #include <cassert>
+#include <charconv>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 
 #include "World.hpp"
+#include "IniFile.hpp"
 #include "ObjectData.hpp"
 
-World::World(TextureLoader &texLoader, ObjectDataStore &objectDataStore) : texLoader(texLoader), objectDataStore(objectDataStore)
+World::World(FileLoader &fileLoader, TextureLoader &texLoader, ObjectDataStore &objectDataStore) : fileLoader(fileLoader), texLoader(texLoader), objectDataStore(objectDataStore)
 {
+    loadEasterEggs();
 }
 
 World::~World()
@@ -268,6 +271,178 @@ void World::setWindowSize(unsigned int windowWidth, unsigned int windowHeight)
     this->windowHeight = windowHeight;
 
     clampScroll();
+}
+
+// load the "global" easter eggs from EE.INI
+void World::loadEasterEggs()
+{
+    // parsing helpers
+    auto skipWhitespace = [](const char *&ptr, const char *end)
+    {
+        while(ptr != end && std::isspace(*ptr)) ptr++;
+    };
+
+    auto parseInt = [&skipWhitespace](int &v, const char *&ptr, const char *end)
+    {
+        skipWhitespace(ptr, end);
+
+        auto res = std::from_chars(ptr, end, v);
+
+        ptr = res.ptr;
+        skipWhitespace(ptr, end);
+
+        return res;
+    };
+
+    auto stream = fileLoader.openResourceFile("EE.INI");
+    if(!stream)
+    {
+        std::cerr << "Could not open EE.INI!\n";
+        return;
+    }
+
+    IniFile ini(*stream.get());
+
+    auto timeEventsSection = ini.getSection("TimeEvents");
+
+    if(timeEventsSection)
+    {
+        // these create objects at random intervals
+        for(auto &event : *timeEventsSection)
+        {
+            // keys don't matter
+            auto &val = event.second;
+
+            // value is comma separated
+            auto ptr = val.data();
+            auto end = val.data() + val.length();
+
+            auto error = [&ptr, &val]()
+            {
+                std::cerr << "Failed to parse time event " << val << " at offset " << ptrdiff_t(ptr - val.data()) << "\n";
+            };
+
+            int values[13];
+
+            // first 11 ints
+            for(int i = 0; i < 11; i++)
+            {
+                if(parseInt(values[i], ptr, end).ec != std::errc{} || *ptr != ',')
+                {
+                    error();
+                    continue;
+                }
+                ptr++;
+            }
+
+            // type (always P or S)
+            skipWhitespace(ptr, end);
+            char type = *ptr++;
+            if(*ptr != ',')
+            {
+                error();
+                continue;
+            }
+            ptr++;
+
+            // x/y
+            for(int i = 11; i < 13; i++)
+            {
+                if(parseInt(values[i], ptr, end).ec != std::errc{} || (ptr != end && *ptr != ','))
+                {
+                    error();
+                    continue;
+                }
+                ptr++;
+            }
+
+            // assing the values
+            TimeEvent timeEvent = {};
+
+            switch(type)
+            {
+                case 'P':
+                    timeEvent.type = ObjectMotion::Port;
+                    break;
+
+                case 'S':
+                    timeEvent.type = ObjectMotion::Starboard;
+                    break;
+
+                default:
+                    std::cerr << "Unhandled TimeEvent type: " << type << "\n";
+            }
+
+            timeEvent.startDay = values[0];
+            timeEvent.startMonth = values[1];
+
+            timeEvent.endDay = values[2];
+            timeEvent.endMonth = values[3];
+    
+            timeEvent.startHour = values[4];
+            timeEvent.startMin = values[5];
+
+            timeEvent.endHour = values[6];
+            timeEvent.endMin = values[7];
+
+            timeEvent.resId = values[8];
+            timeEvent.resFrameset = values[9];
+
+            timeEvent.periodMax = values[10];
+
+            timeEvent.x = values[11];
+            timeEvent.y = values[12];
+    
+            timeEvents.emplace_back(timeEvent);
+        }
+    }
+
+    auto loadEventsSection = ini.getSection("LoadEvents");
+
+    if(loadEventsSection)
+    {
+        // these replace objects at load time on certain days
+        for(auto &event : *loadEventsSection)
+        {
+            // keys still don't matter
+            auto &val = event.second;
+
+            // value is comma separated
+            auto ptr = val.data();
+            auto end = val.data() + val.length();
+
+            auto error = [&ptr, &val]()
+            {
+                std::cerr << "Failed to parse load event " << val << " at offset " << ptrdiff_t(ptr - val.data()) << "\n";
+            };
+
+            int values[6];
+
+            // it's all ints
+            for(int i = 0; i < 6; i++)
+            {
+                if(parseInt(values[i], ptr, end).ec != std::errc{} || (ptr != end && *ptr != ','))
+                {
+                    error();
+                    continue;
+                }
+                ptr++;
+            }
+
+            LoadEvent loadEvent = {};
+
+            loadEvent.startDay = values[0];
+            loadEvent.startMonth = values[1];
+
+            loadEvent.endDay = values[2];
+            loadEvent.endMonth = values[3];
+
+            loadEvent.oldId = values[4];
+            loadEvent.newId = values[5];
+
+            loadEvents.emplace_back(loadEvent);
+        }
+    }
 }
 
 void World::clampScroll()
