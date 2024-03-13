@@ -147,10 +147,12 @@ void IniFile::load(std::istream &stream)
                 {
                     if(isComment(value.substr(i)))
                     {
-                        value = stripRight(value.substr(0, i));
+                        value = value.substr(0, i);
                         break;
                     }
                 }
+
+                value = stripRight(value);
             }
 
             if(curSection == sections.end())
