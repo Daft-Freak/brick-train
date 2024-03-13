@@ -59,6 +59,7 @@ private:
         const ObjectData::Frameset *getCurrentFrameset() const;
         int getFrameDelay() const;
 
+        void setDefaultAnimation();
         void setAnimation(int index);
 
         uint16_t id;
@@ -101,6 +102,7 @@ private:
     Object *getObjectAt(unsigned int x, unsigned int y);
 
     void applyInsertEasterEggs();
+    void applyLoadEasterEggs();
 
     static const int tileSize = 16;
 

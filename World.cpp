@@ -148,6 +148,8 @@ bool World::loadSave(const std::filesystem::path &path)
 
     clampScroll();
 
+    applyLoadEasterEggs();
+
     // TODO: this should happen when closing the toybox
     applyInsertEasterEggs();
 
@@ -512,6 +514,53 @@ World::Object *World::getObjectAt(unsigned int x, unsigned int y)
     return nullptr;
 }
 
+void World::applyLoadEasterEggs()
+{
+    std::map<int, int> idMap;
+
+    auto time = std::time(nullptr);
+    auto tm = std::localtime(&time);
+
+    int month = tm->tm_mon + 1;
+    int day = tm->tm_mday;
+
+    for(auto &event : loadEvents)
+    {
+        // outside months
+        if(month < event.startMonth || month > event.endMonth)
+            continue;
+
+        // before start date
+        if(day < event.startDay && month == event.startMonth)
+            continue;
+
+        // after end date
+        if(day > event.endDay && month == event.endMonth)
+            continue;
+
+        idMap.emplace(event.oldId, event.newId);
+    }
+
+    std::cout << idMap.size() << " load events for date " << day << "/" << month << std::endl;
+
+    for(auto &object : objects)
+    {
+        // this doesn't have all the logic that insert has, but these usually don't change the size
+        auto it = idMap.find(object.id);
+
+        if(it != idMap.end())
+        {
+            object.id = it->second;
+            object.data = objectDataStore.getObject(object.id);
+            object.texture = texLoader.loadTexture(object.id);
+
+            object.setDefaultAnimation(); // saved animation may not exist in the new object
+        }
+    }
+
+    // TODO: these can affect minifigs and the backdrop
+}
+
 void World::applyInsertEasterEggs()
 {
     for(size_t i = 0; i < objects.size(); i++)
@@ -643,8 +692,7 @@ void World::applyInsertEasterEggs()
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
 {
     // set the default animation
-    if(data && data->defaultFrameset != -1)
-        setAnimation(data->defaultFrameset);
+    setDefaultAnimation();
 }
 
 void World::Object::update(uint32_t deltaMs)
@@ -852,6 +900,12 @@ int World::Object::getFrameDelay() const
         return std::max(1, frameset->delay) * 30; // bit of a guess
 
     return 0;
+}
+
+void World::Object::setDefaultAnimation()
+{
+    if(data && data->defaultFrameset != -1)
+        setAnimation(data->defaultFrameset);
 }
 
 void World::Object::setAnimation(int index)
