@@ -122,6 +122,7 @@ private:
 
     uint8_t *tileObjectType = nullptr;
 
+    std::string backdropPath;
     std::shared_ptr<SDL_Texture> backdrop;
 
     std::vector<Object> objects;

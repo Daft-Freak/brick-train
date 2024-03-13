@@ -51,7 +51,7 @@ bool World::loadSave(const std::filesystem::path &path)
     // load backdrop
     char *backdropName = reinterpret_cast<char *>(header + 14);
 
-    std::string backdropPath("backdrop/");
+    backdropPath = "backdrop/";
 
     // build path, default to "backdrop"
     backdropPath.append(backdropName[0] ? backdropName : "backdrop").append(".bmp");
@@ -524,6 +524,12 @@ void World::applyLoadEasterEggs()
     int month = tm->tm_mon + 1;
     int day = tm->tm_mday;
 
+    // annoyingly, we don't have the id of the backdrop
+    // only its name... which might be in uppercase and won't match the value in the string table
+    auto lowerBackdropPath = backdropPath;
+    for(auto &c : lowerBackdropPath)
+        c = std::tolower(c);
+
     for(auto &event : loadEvents)
     {
         // outside months
@@ -539,6 +545,19 @@ void World::applyLoadEasterEggs()
             continue;
 
         idMap.emplace(event.oldId, event.newId);
+
+        // lookup the value to see if we need to change the backdrop
+        auto filename = fileLoader.lookupId(event.oldId, ".bmp");
+        if(filename && filename.value() == lowerBackdropPath)
+        {
+            auto newPath = fileLoader.lookupId(event.newId, ".bmp");
+            if(newPath)
+            {
+                auto newTex = texLoader.loadTexture(newPath.value());
+                if(newTex)
+                    backdrop = newTex;
+            }
+        }
     }
 
     std::cout << idMap.size() << " load events for date " << day << "/" << month << std::endl;
@@ -558,7 +577,7 @@ void World::applyLoadEasterEggs()
         }
     }
 
-    // TODO: these can affect minifigs and the backdrop
+    // TODO: these can affect minifigs
 }
 
 void World::applyInsertEasterEggs()
