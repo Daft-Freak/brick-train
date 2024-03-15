@@ -783,16 +783,22 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
             0
         };
 
-        SDL_QueryTexture(texture.get(), nullptr, nullptr, &dr.w, &dr.h);
-        dr.w *= zoom;
-        dr.h *= zoom;
+        SDL_Rect sr = {};
+
+        SDL_QueryTexture(texture.get(), nullptr, nullptr, &sr.w, &sr.h);
+        sr.w /= data->totalFrames;
+
+        dr.w = sr.w * zoom;
+        dr.h = sr.h * zoom;
+
+        // TODO: animations
 
         // also need to apply hotspot
         // (definitely used for the rainbow)
         dr.x -= data->hotspotX * zoom;
         dr.y -= data->hotspotY * zoom;
 
-        SDL_RenderCopy(renderer, texture.get(), nullptr, &dr);
+        SDL_RenderCopy(renderer, texture.get(), &sr, &dr);
         return;
     }
 
