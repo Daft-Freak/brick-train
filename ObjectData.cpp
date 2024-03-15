@@ -154,6 +154,12 @@ bool ObjectData::loadDatStream(std::istream &stream)
                     buttonOffset[1] = toInt(split[3]);
                     buttonOffset[2] = toInt(split[4]);
                 }
+                else if(split[0] == "ButtonVisible")
+                {
+                    assert(split.size() == 2);
+
+                    buttonVisible = split[1] == "1";
+                }
                 // TODO: ignore case?
                 else if(split[0] == "Hotspot" || split[0] == "hotspot")
                 {
@@ -233,6 +239,8 @@ bool ObjectData::loadDatStream(std::istream &stream)
                 }
                 else if(line == "semi-transparent")
                     semiTransparent = true;
+                else if(line == "animation")
+                {} // marks the animation section... sometimes
                 else if(line == "-9")
                 {} // usually marks the end of some kind of list
                 else if(split[0] == "//")

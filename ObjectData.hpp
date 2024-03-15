@@ -97,4 +97,5 @@ public:
     std::vector<Frameset> framesets;
 
     int buttonOffset[3] = {0, 0, 0};
+    bool buttonVisible = true;
 };
