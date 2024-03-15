@@ -776,6 +776,9 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     if(!texture || !data)
         return;
 
+    int frameW, frameH;
+    std::tie(frameW, frameH) = getFrameSize();
+
     // if there's no occupancy data, draw the whole thing
     if(data->bitmapOccupancy.empty() && z == 6)
     {
@@ -783,17 +786,15 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
         SDL_Rect dr{
             static_cast<int>(x * zoom) - scrollX,
             static_cast<int>(y * zoom) - scrollY,
-            0,
-            0
+            static_cast<int>(frameW * zoom),
+            static_cast<int>(frameH * zoom)
         };
 
-        SDL_Rect sr = {};
-
-        SDL_QueryTexture(texture.get(), nullptr, nullptr, &sr.w, &sr.h);
-        sr.w /= data->totalFrames;
-
-        dr.w = sr.w * zoom;
-        dr.h = sr.h * zoom;
+        SDL_Rect sr = {
+            0, 0,
+            frameW,
+            frameH
+        };
 
         // TODO: animations
 
@@ -815,9 +816,7 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     if(z > data->maxBitmapOccupancy + (split ? 1 : 0))
         return;
 
-    int w = data->bitmapSizeX * tileSize;
-
-    int frameOffset = currentAnimationFrame * w;
+    int frameOffset = currentAnimationFrame * frameW;
 
     // copy frame
     for(int ty = 0; ty < int(data->bitmapSizeY); ty++)
@@ -841,7 +840,7 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
             if(split && tileZ + 1 == z)
             {
                 // second layer, a bit higher
-                sr.x += w;
+                sr.x += frameW;
                 SDL_RenderCopy(renderer, texture.get(), &sr, &dr);
             }
         }
@@ -948,4 +947,21 @@ void World::Object::setAnimation(int index)
     currentAnimationFrame = frameset.startFrame;
 
     animationTimer = getFrameDelay();
+}
+
+std::tuple<int, int> World::Object::getFrameSize() const
+{
+    if(!data || !texture)
+        return {0, 0};
+
+    // use occupancy data if present
+    if(!data->bitmapOccupancy.empty())
+        return {data->bitmapSizeX * 16, data->bitmapSizeY * 16};
+
+    // fall back to image size / frames
+    int w, h;
+
+    SDL_QueryTexture(texture.get(), nullptr, nullptr, &w, &h);
+
+    return {w / data->totalFrames, h};
 }

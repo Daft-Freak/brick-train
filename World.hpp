@@ -62,6 +62,8 @@ private:
         void setDefaultAnimation();
         void setAnimation(int index);
 
+        std::tuple<int, int> getFrameSize() const;
+
         uint16_t id;
         int x, y;
         std::string name;
