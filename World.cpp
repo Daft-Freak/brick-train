@@ -497,7 +497,11 @@ World::Object *World::getObjectAt(unsigned int x, unsigned int y)
         // check physical coords
         unsigned int yAdjust = object.data->bitmapSizeY - object.data->physSizeY;
 
-        if(x < object.x || y < object.y + yAdjust)
+        // not something we should check
+        if(object.x < 0 || object.y < 0 || !object.data->physSizeX)
+            continue;
+
+        if(x < static_cast<unsigned int>(object.x) || y < static_cast<unsigned int>(object.y) + yAdjust)
             continue;
 
         if(x >= object.x + object.data->physSizeX || y >= object.y + yAdjust + object.data->physSizeY)

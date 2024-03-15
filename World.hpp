@@ -63,7 +63,7 @@ private:
         void setAnimation(int index);
 
         uint16_t id;
-        uint16_t x, y;
+        int x, y;
         std::string name;
 
         std::shared_ptr<SDL_Texture> texture;
