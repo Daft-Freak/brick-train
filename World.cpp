@@ -779,6 +779,8 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     int frameW, frameH;
     std::tie(frameW, frameH) = getFrameSize();
 
+    int frameOffset = currentAnimationFrame * frameW;
+
     // if there's no occupancy data, draw the whole thing
     if(data->bitmapOccupancy.empty() && z == 6)
     {
@@ -791,7 +793,8 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
         };
 
         SDL_Rect sr = {
-            0, 0,
+            frameOffset,
+            0,
             frameW,
             frameH
         };
@@ -815,8 +818,6 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
 
     if(z > data->maxBitmapOccupancy + (split ? 1 : 0))
         return;
-
-    int frameOffset = currentAnimationFrame * frameW;
 
     // copy frame
     for(int ty = 0; ty < int(data->bitmapSizeY); ty++)
