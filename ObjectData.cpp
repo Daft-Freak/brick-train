@@ -364,9 +364,6 @@ bool ObjectData::loadDatStream(std::istream &stream)
                     fs.priority = toInt(split[9]);
                     fs.flipX = split[10] == "1";
 
-                    if(split[10] != "0")
-                        std::cout << "frameset unk " << line << "\n";
-
                     framesets.emplace_back(fs);
                 }
                 break;

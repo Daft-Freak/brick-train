@@ -779,6 +779,9 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     int frameW, frameH;
     std::tie(frameW, frameH) = getFrameSize();
 
+    // animation info
+    auto frameset = getCurrentFrameset();
+
     int frameOffset = currentAnimationFrame * frameW;
 
     // if there's no occupancy data, draw the whole thing
@@ -799,19 +802,16 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
             frameH
         };
 
-        // TODO: animations
+        bool flipX = frameset && frameset->flipX;
 
         // also need to apply hotspot
         // (definitely used for the rainbow)
         dr.x -= data->hotspotX * zoom;
         dr.y -= data->hotspotY * zoom;
 
-        SDL_RenderCopy(renderer, texture.get(), &sr, &dr);
+        SDL_RenderCopyEx(renderer, texture.get(), &sr, &dr, 0.0, nullptr, flipX ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
         return;
     }
-
-    // animation info
-    auto frameset = getCurrentFrameset();
 
     // "split" frames render a second image above the first one
     bool split = frameset ? frameset->splitFrames : false;
@@ -824,6 +824,7 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     {
         for(int tx = 0; tx < int(data->bitmapSizeX); tx++)
         {
+            // TODO: x flip
             int tileZ = data->bitmapOccupancy[tx + ty * data->bitmapSizeX];
             
             SDL_Rect sr{frameOffset + tx * tileSize, ty * tileSize, tileSize, tileSize};
