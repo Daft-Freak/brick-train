@@ -9,7 +9,8 @@
 #include "IniFile.hpp"
 #include "ObjectData.hpp"
 
-World::World(FileLoader &fileLoader, TextureLoader &texLoader, ObjectDataStore &objectDataStore) : fileLoader(fileLoader), texLoader(texLoader), objectDataStore(objectDataStore)
+World::World(FileLoader &fileLoader, TextureLoader &texLoader, ObjectDataStore &objectDataStore) :
+    fileLoader(fileLoader), texLoader(texLoader), objectDataStore(objectDataStore), randomGen(std::random_device{}())
 {
     loadEasterEggs();
 }
@@ -160,6 +161,8 @@ void World::update(uint32_t deltaMs)
 {
     for(auto &object : objects)
         object.update(deltaMs);
+
+    updateTimeEasterEggs(deltaMs);
 
     //remove dead objects
     objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.id == 0xFFFF;}), objects.end());
@@ -397,6 +400,10 @@ void World::loadEasterEggs()
 
             timeEvent.x = values[11];
             timeEvent.y = values[12];
+
+            // init timer
+            std::uniform_int_distribution distribution(10, timeEvent.periodMax);
+            timeEvent.periodTimer = distribution(randomGen) * 1000;
     
             timeEvents.emplace_back(timeEvent);
         }
@@ -713,6 +720,111 @@ void World::applyInsertEasterEggs()
 
     // clean up removed objects
     objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.id == 0xFFFF;}), objects.end());
+}
+
+void World::updateTimeEasterEggs(uint32_t deltaMs)
+{
+    auto time = std::time(nullptr);
+    auto tm = std::localtime(&time);
+    
+    int month = tm->tm_mon + 1;
+    int day = tm->tm_mday;
+
+    int hour = tm->tm_hour;
+    int min = tm->tm_min;
+
+    for(auto &event : timeEvents)
+    {
+        event.periodTimer -= deltaMs;
+
+        if(event.periodTimer < 0)
+        {
+            // restart timer
+            std::uniform_int_distribution distribution(10, event.periodMax);
+            event.periodTimer += distribution(randomGen) * 1000;
+
+            // outside months (month == 0 is "any")
+            if(event.startMonth && month < event.startMonth)
+                continue;
+
+            if(event.endMonth && month > event.endMonth)
+                continue;
+
+            // before start date
+            if(day < event.startDay && (!event.startMonth || month == event.startMonth))
+                continue;
+
+            // after end date
+            if(day > event.endDay && (!event.endMonth || month == event.endMonth))
+                continue;
+
+            // check time
+            // all the events in EE.INI have a time range of 01:00 - 23:00, so nothing happens for two hours at night...
+            if(hour < event.startHour || hour > event.endHour)
+                continue;
+
+            if(min < event.startMin && hour == event.startHour)
+                continue;
+
+            if(min > event.endMin && hour == event.endHour)
+                continue;
+
+            // finally create the object
+
+            // TODO: cant/must have data
+
+            int x = event.x;
+            int y = event.y;
+
+            bool xNonZero = x != 0;
+
+            // random pos if -1
+            if(x == -1)
+                x = std::uniform_int_distribution<int>(0, width * tileSize)(randomGen);
+
+            if(y == -1)
+                y = std::uniform_int_distribution<int>(0, height * tileSize)(randomGen);
+
+            auto &object = addObject(event.resId, x, y, "");
+            object.setAnimation(event.resFrameset);
+
+            // set up movement
+            int targetX, targetY;
+            int velX = 0, velY = 0;
+            int speed = 35 * std::uniform_int_distribution(1, 3)(randomGen); // rough pixels/s from a lot of in-game cloud watching
+
+            auto objectSize = object.getFrameSize();
+
+            switch(event.type)
+            {
+                case ObjectMotion::None:
+                    break;
+                
+                case ObjectMotion::Port:
+                    targetY = y;
+                    // if x was zero there is no target so scroll to the opposite side
+                    targetX = xNonZero ? x : -std::get<0>(objectSize);
+                    object.x = width * tileSize;
+
+                    velX = -speed;
+                    break;
+
+                case ObjectMotion::Starboard:
+                    targetY = y;
+                    targetX = xNonZero ? x : width * tileSize;
+                    object.x = -std::get<0>(objectSize);
+
+                    velX = speed;
+                    break;
+            }
+
+            object.pixelX = object.x;
+            object.pixelY = object.y;
+
+            // reverse back to start if x was specified
+            object.setTargetPos(targetX, targetY, velX, velY, xNonZero);
+        }
+    }
 }
 
 World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)

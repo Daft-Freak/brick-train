@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include <filesystem>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -97,6 +98,8 @@ private:
         int periodMax;
         ObjectMotion type;
         int x, y;
+
+        int periodTimer;
     };
 
     struct LoadEvent
@@ -116,12 +119,15 @@ private:
 
     void applyInsertEasterEggs();
     void applyLoadEasterEggs();
+    void updateTimeEasterEggs(uint32_t deltaMs);
 
     static const int tileSize = 16;
 
     FileLoader &fileLoader;
     TextureLoader &texLoader;
     ObjectDataStore &objectDataStore;
+
+    std::mt19937 randomGen;
 
     std::vector<TimeEvent> timeEvents;
     std::vector<LoadEvent> loadEvents;
