@@ -160,6 +160,9 @@ void World::update(uint32_t deltaMs)
 {
     for(auto &object : objects)
         object.update(deltaMs);
+
+    //remove dead objects
+    objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.id == 0xFFFF;}), objects.end());
 }
 
 void World::handleEvent(SDL_Event &event)
@@ -701,8 +704,8 @@ void World::applyInsertEasterEggs()
                 {
                     // objects without occupancy seem to use pixel offsets
                     // (rainbow)
-                    newObject.x += objects[i].x * (tileSize - 1);
-                    newObject.y += (objects[i].y + oldYAdjust) * (tileSize - 1);
+                    newObject.pixelX = objects[i].x * tileSize + easterEgg.x;
+                    newObject.pixelY = (objects[i].y + oldYAdjust) * tileSize + easterEgg.y;
                 }
             }
         }
@@ -722,6 +725,36 @@ void World::Object::update(uint32_t deltaMs)
 {
     if(!data)
         return;
+
+    if(velX || velY)
+    {
+        auto delta = static_cast<float>(deltaMs) / 1000.0f;
+        pixelX += velX * delta;
+        pixelY += velY * delta;
+
+        bool done =  (velX > 0 && pixelX >= targetX)
+                  || (velX < 0 && pixelX <= targetX)
+                  || (velY > 0 && pixelY >= targetY)
+                  || (velY < 0 && pixelY <= targetY);
+
+        if(done)
+        {
+            if(reverse)
+            {
+                // go back to original pos
+                targetX = x;
+                targetY = y;
+                velX = -velX;
+                velY = -velY;
+                reverse = false;
+            }
+            else
+            {
+                // mark object to be removed
+                id = 0xFFFF;
+            }
+        }
+    }
 
     // TODO: sounds
     if(currentAnimation != -1)
@@ -789,8 +822,8 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     {
         // ... using pixel offsets
         SDL_Rect dr{
-            static_cast<int>(x * zoom) - scrollX,
-            static_cast<int>(y * zoom) - scrollY,
+            static_cast<int>(pixelX * zoom) - scrollX,
+            static_cast<int>(pixelY * zoom) - scrollY,
             static_cast<int>(frameW * zoom),
             static_cast<int>(frameH * zoom)
         };
@@ -966,4 +999,15 @@ std::tuple<int, int> World::Object::getFrameSize() const
     SDL_QueryTexture(texture.get(), nullptr, nullptr, &w, &h);
 
     return {w / data->totalFrames, h};
+}
+
+void World::Object::setTargetPos(int tx, int ty, int vx, int vy, bool reverse)
+{
+    targetX = tx;
+    targetY = ty;
+
+    velX = vx;
+    velY = vy;
+    
+    this->reverse = reverse;
 }

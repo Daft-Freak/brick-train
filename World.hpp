@@ -64,6 +64,8 @@ private:
 
         std::tuple<int, int> getFrameSize() const;
 
+        void setTargetPos(int tx, int ty, int vx, int vy, bool reverse = false);
+
         uint16_t id;
         int x, y;
         std::string name;
@@ -76,6 +78,15 @@ private:
         int currentAnimation = -1, nextAnimation = -1;
         int currentAnimationFrame = 0;
         int animationTimer = 0;
+
+        // "screen" aligned objects
+        float pixelX = 0.0f, pixelY = 0.0f;
+
+        // moving objects
+        int targetX = 0, targetY = 0;
+        int velX = 0, velY = 0;
+
+        bool reverse = false;
     };
 
     struct TimeEvent
