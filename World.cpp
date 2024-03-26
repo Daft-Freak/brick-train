@@ -88,7 +88,7 @@ bool World::loadSave(const std::filesystem::path &path)
 
         if(file.read(reinterpret_cast<char *>(objectData), sizeof(objectData)).gcount() != sizeof(objectData))
         {
-            std::cerr << "Failed to object " << i << " in " << path << "\n";
+            std::cerr << "Failed to read object " << i << " in " << path << "\n";
             return false;
         }
 
@@ -145,7 +145,36 @@ bool World::loadSave(const std::filesystem::path &path)
         }
     }
 
-    // TODO: trains
+    // trains
+    for(uint32_t i = 0; i < numTrains; i++)
+    {
+        uint8_t trainData[44];
+
+        if(file.read(reinterpret_cast<char *>(trainData), sizeof(trainData)).gcount() != sizeof(trainData))
+        {
+            std::cerr << "Failed to read train " << i << " in " << path << "\n";
+            return false;
+        }
+
+        // first we have the object ids for the engine and carriages
+        auto ids = reinterpret_cast<uint32_t *>(trainData);
+        // then another value related to each
+        // for engine: 1 = not steam, 2 = steam ?
+        // for carriage: 2 = passenger, 3 = cargo, 4 = mail ?
+        auto type = reinterpret_cast<uint32_t *>(trainData + 16);
+        // then a name
+        auto name = reinterpret_cast<char *>(trainData + 32);
+
+        std::cout << "\ttrain " << name;
+
+        for(int j = 0; j < 4; j++)
+        {
+            if(ids[j])
+                std::cout << " " << ids[j] << "(" << type[j] << ")";
+        }
+
+        std::cout << std::endl;
+    }
 
     clampScroll();
 
