@@ -509,7 +509,7 @@ void World::clampScroll()
     clampDim(worldHeight, windowHeight, scrollY);
 }
 
-World::Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
+Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
 {
     // attempt to get texture
     auto texture = texLoader.loadTexture(id);
@@ -525,7 +525,7 @@ World::Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string
     return objects.emplace_back(id, x, y, name, texture, data);
 }
 
-World::Object *World::getObjectAt(unsigned int x, unsigned int y)
+Object *World::getObjectAt(unsigned int x, unsigned int y)
 {
     // TODO: add some kind of lookup table for this
     for(auto &object : objects)
@@ -860,13 +860,13 @@ void World::updateTimeEasterEggs(uint32_t deltaMs)
     }
 }
 
-World::Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
+Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
 {
     // set the default animation
     setDefaultAnimation();
 }
 
-void World::Object::update(uint32_t deltaMs)
+void Object::update(uint32_t deltaMs)
 {
     if(!data)
         return;
@@ -949,7 +949,7 @@ void World::Object::update(uint32_t deltaMs)
     }
 }
 
-void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int z, float zoom)
+void Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int z, float zoom)
 {
     if(!texture || !data)
         return;
@@ -997,6 +997,8 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     if(z > data->maxBitmapOccupancy + (split ? 1 : 0))
         return;
 
+    auto tileSize = World::tileSize;
+
     // copy frame
     for(int ty = 0; ty < int(data->bitmapSizeY); ty++)
     {
@@ -1027,7 +1029,7 @@ void World::Object::render(SDL_Renderer *renderer, int scrollX, int scrollY, int
     }
 }
 
-void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
+void Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
 {
     if(!data)
         return;
@@ -1037,12 +1039,12 @@ void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY
 
     auto getXPos = [this, zoom, scrollX](int xOff) -> int
     {
-        return (x * tileSize + xOff) * zoom - scrollX;
+        return (x * World::tileSize + xOff) * zoom - scrollX;
     };
 
     auto getYPos = [this, zoom, scrollY](int yOff) -> int
     {
-        return (y * tileSize + yOff) * zoom - scrollY;
+        return (y * World::tileSize + yOff) * zoom - scrollY;
     };
 
     for(auto &coord : data->coords)
@@ -1065,12 +1067,12 @@ void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY
 
     // bottom
     px = data->entryExitOffsets[1];
-    py = data->bitmapSizeY * tileSize - 1;
+    py = data->bitmapSizeY * World::tileSize - 1;
     if(px)
         SDL_RenderDrawPoint(renderer, getXPos(px), getYPos(py));
 
     // right
-    px = data->bitmapSizeX * tileSize - 1;
+    px = data->bitmapSizeX * World::tileSize - 1;
     py = data->entryExitOffsets[2];
     if(py)
         SDL_RenderDrawPoint(renderer, getXPos(px), getYPos(py));
@@ -1093,56 +1095,56 @@ void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY
     }
 }
 
-uint16_t World::Object::getId() const
+uint16_t Object::getId() const
 {
     return id;
 }
 
-int World::Object::getX() const
+int Object::getX() const
 {
     return x;
 }
 
-int World::Object::getY() const
+int Object::getY() const
 {
     return y;
 }
 
-void World::Object::setX(int x)
+void Object::setX(int x)
 {
     this->x = x;
 }
 
-void World::Object::setY(int y)
+void Object::setY(int y)
 {
     this->y = y;
 }
 
-void World::Object::setPosition(int x, int y)
+void Object::setPosition(int x, int y)
 {
     setX(x);
     setY(y);
 }
 
-const ObjectData *World::Object::getData() const
+const ObjectData *Object::getData() const
 {
     return data;
 }
 
 
-void World::Object::replace(uint16_t newId, std::shared_ptr<SDL_Texture> newTex, const ObjectData *newData)
+void Object::replace(uint16_t newId, std::shared_ptr<SDL_Texture> newTex, const ObjectData *newData)
 {
     id = newId;
     texture = newTex;
     data = newData;
 }
 
-void World::Object::addMinifig(Minifig &&minifig)
+void Object::addMinifig(Minifig &&minifig)
 {
     minifigs.emplace_back(std::move(minifig));
 }
 
-const ObjectData::Frameset *World::Object::getCurrentFrameset() const
+const ObjectData::Frameset *Object::getCurrentFrameset() const
 {
     if(currentAnimation != -1)
         return &data->framesets[currentAnimation];
@@ -1150,7 +1152,7 @@ const ObjectData::Frameset *World::Object::getCurrentFrameset() const
     return nullptr;
 }
 
-int World::Object::getFrameDelay() const
+int Object::getFrameDelay() const
 {
     auto frameset = getCurrentFrameset();
     if(frameset)
@@ -1159,13 +1161,13 @@ int World::Object::getFrameDelay() const
     return 0;
 }
 
-void World::Object::setDefaultAnimation()
+void Object::setDefaultAnimation()
 {
     if(data && data->defaultFrameset != -1)
         setAnimation(data->defaultFrameset);
 }
 
-void World::Object::setAnimation(int index)
+void Object::setAnimation(int index)
 {
     if(index < 0 || !data || index > data->numFramesets)
         return;
@@ -1178,7 +1180,7 @@ void World::Object::setAnimation(int index)
     animationTimer = getFrameDelay();
 }
 
-std::tuple<int, int> World::Object::getFrameSize() const
+std::tuple<int, int> Object::getFrameSize() const
 {
     if(!data || !texture)
         return {0, 0};
@@ -1195,13 +1197,13 @@ std::tuple<int, int> World::Object::getFrameSize() const
     return {w / data->totalFrames, h};
 }
 
-void World::Object::setPixelPos(float x, float y)
+void Object::setPixelPos(float x, float y)
 {
     pixelX = x;
     pixelY = y;
 }
 
-void World::Object::setTargetPos(int tx, int ty, int vx, int vy, bool reverse)
+void Object::setTargetPos(int tx, int ty, int vx, int vy, bool reverse)
 {
     targetX = tx;
     targetY = ty;
