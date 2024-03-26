@@ -194,7 +194,7 @@ void World::update(uint32_t deltaMs)
     updateTimeEasterEggs(deltaMs);
 
     //remove dead objects
-    objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.id == 0xFFFF;}), objects.end());
+    objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.getId() == 0xFFFF;}), objects.end());
 }
 
 void World::handleEvent(SDL_Event &event)
@@ -530,27 +530,31 @@ World::Object *World::getObjectAt(unsigned int x, unsigned int y)
     // TODO: add some kind of lookup table for this
     for(auto &object : objects)
     {
-        if(!object.data)
+        auto objectData = object.getData();
+        if(!objectData)
+            continue;
+
+        auto objectX = object.getX();
+        auto objectY = object.getY();
+
+        // not something we should check
+        if(objectX < 0 || objectY < 0 || !objectData->physSizeX)
             continue;
 
         // check physical coords
-        unsigned int yAdjust = object.data->bitmapSizeY - object.data->physSizeY;
+        unsigned int yAdjust = objectData->bitmapSizeY - objectData->physSizeY;
 
-        // not something we should check
-        if(object.x < 0 || object.y < 0 || !object.data->physSizeX)
+        if(x < static_cast<unsigned int>(objectX) || y < static_cast<unsigned int>(objectY) + yAdjust)
             continue;
 
-        if(x < static_cast<unsigned int>(object.x) || y < static_cast<unsigned int>(object.y) + yAdjust)
-            continue;
-
-        if(x >= object.x + object.data->physSizeX || y >= object.y + yAdjust + object.data->physSizeY)
+        if(x >= objectX + objectData->physSizeX || y >= objectY + yAdjust + objectData->physSizeY)
             continue;
 
         // check occupancy
-        int relX = x - object.x;
-        int relY = y - (object.y + yAdjust);
+        int relX = x - objectX;
+        int relY = y - (objectY + yAdjust);
 
-        if(object.data->physicalOccupancy[relX + relY * object.data->physSizeX])
+        if(objectData->physicalOccupancy[relX + relY * objectData->physSizeX])
             return &object;
     }
 
@@ -608,7 +612,7 @@ void World::applyLoadEasterEggs()
     for(auto &object : objects)
     {
         // this doesn't have all the logic that insert has, but these usually don't change the size
-        auto it = idMap.find(object.id);
+        auto it = idMap.find(object.getId());
 
         if(it != idMap.end())
         {
@@ -628,11 +632,12 @@ void World::applyInsertEasterEggs()
     for(size_t i = 0; i < objects.size(); i++)
     {
         auto &object = objects[i];
+        auto objectData = object.getData();
 
-        if(!object.data)
+        if(!objectData)
             continue;
 
-        for(auto &easterEgg : object.data->easterEggs)
+        for(auto &easterEgg : objectData->easterEggs)
         {
             if(easterEgg.type != ObjectData::EasterEggType::Insert)
                 continue;
@@ -642,25 +647,28 @@ void World::applyInsertEasterEggs()
             {
                 std::vector<std::tuple<unsigned int, unsigned int>> toCheck;
 
-                int yOffset = object.data->bitmapSizeY - object.data->physSizeY;
+                int yOffset = objectData->bitmapSizeY - objectData->physSizeY;
+
+                auto objectX = object.getX();
+                auto objectY = object.getY();
 
                 // check across the top
-                for(unsigned int x = 0; x < object.data->physSizeX; x++)
-                    toCheck.emplace_back(object.x + x, object.y + yOffset - 1);
+                for(unsigned int x = 0; x < objectData->physSizeX; x++)
+                    toCheck.emplace_back(objectX + x, objectY + yOffset - 1);
 
                 // ... down the right side
-                for(int y = -1; y < static_cast<int>(object.data->physSizeY); y++)
-                    toCheck.emplace_back(object.x + object.data->physSizeX, object.y + yOffset + y);
+                for(int y = -1; y < static_cast<int>(objectData->physSizeY); y++)
+                    toCheck.emplace_back(objectX + objectData->physSizeX, objectY + yOffset + y);
 
                 // ... back across the bottom
-                for(int x = object.data->physSizeX; x >= -1; x--)
-                    toCheck.emplace_back(object.x + x, object.y + yOffset + object.data->physSizeY);
+                for(int x = objectData->physSizeX; x >= -1; x--)
+                    toCheck.emplace_back(objectX + x, objectY + yOffset + objectData->physSizeY);
 
                 // ... and up the left size
                 // there is a bug here, the first tile overlaps the previous side
                 // this results in the nessie easter egg working without the top-left flower
-                for(int y = object.data->physSizeY; y >= 0; y--)
-                    toCheck.emplace_back(object.x - 1, object.y + yOffset + y);
+                for(int y = objectData->physSizeY; y >= 0; y--)
+                    toCheck.emplace_back(objectX - 1, objectY + yOffset + y);
 
                 bool match = true;
 
@@ -674,7 +682,7 @@ void World::applyInsertEasterEggs()
 
                     auto objAt = getObjectAt(x, y);
 
-                    if(!objAt || objAt->id != easterEgg.ids[i])
+                    if(!objAt || objAt->getId() != easterEgg.ids[i])
                     {
                         match = false;
                         break;
@@ -685,7 +693,7 @@ void World::applyInsertEasterEggs()
                     continue;
             }
 
-            int oldYAdjust = object.data->bitmapSizeY - object.data->physSizeY;
+            int oldYAdjust = objectData->bitmapSizeY - objectData->physSizeY;
 
             // update object
             if(easterEgg.changeId > 0)
@@ -694,25 +702,28 @@ void World::applyInsertEasterEggs()
                 int xOff = easterEgg.minifigFrameset;
                 int yOff = easterEgg.minifigTime;
 
-                object.x += xOff;
-                object.y += yOff;
+                auto newX = object.getX() + xOff;
+                auto newY = object.getY() + yOff;
                 auto newData = objectDataStore.getObject(easterEgg.changeId);
 
                 // need to adjust if the new object has different phys/bitmap height difference (fountain -> big fountain)
                 int yAdjust = newData->bitmapSizeY - newData->physSizeY;
-                object.y += oldYAdjust - yAdjust;
+                newY += oldYAdjust - yAdjust;
 
                 // remove overlapping objects
                 for(unsigned int y = 0; y < newData->physSizeY; y++)
                 {
                     for(unsigned int x = 0; x < newData->physSizeX; x++)
                     {
-                        auto overlapObj = getObjectAt(object.x + x, object.y + y + yAdjust);
+                        auto overlapObj = getObjectAt(newX + x, newY + y + yAdjust);
                         // set an invalid id, we'll remove them later
                         if(overlapObj && overlapObj != &object)
                             overlapObj->id = 0xFFFF;
                     }
                 }
+
+                object.x = newX;
+                object.y = newY;
 
                 object.id = easterEgg.changeId;
                 object.texture = texLoader.loadTexture(object.id);
@@ -727,28 +738,29 @@ void World::applyInsertEasterEggs()
             // create new object
             if(easterEgg.newId > 0)
             {
-                int newX = object.x + easterEgg.x;
-                int newY = object.y + easterEgg.y;
+                int newX = object.getX() + easterEgg.x;
+                int newY = object.getY() + easterEgg.y;
 
                 // adjust y for physical vs bitmap size
                 newY += oldYAdjust;
 
                 auto &newObject = addObject(easterEgg.newId, newX, newY, "");
                 newObject.setAnimation(easterEgg.newFrameset);
+                auto newObjectData = newObject.getData();
 
-                if(newObject.data && newObject.data->bitmapOccupancy.empty())
+                if(newObjectData && newObjectData->bitmapOccupancy.empty())
                 {
                     // objects without occupancy seem to use pixel offsets
                     // (rainbow)
-                    newObject.pixelX = objects[i].x * tileSize + easterEgg.x;
-                    newObject.pixelY = (objects[i].y + oldYAdjust) * tileSize + easterEgg.y;
+                    newObject.pixelX = objects[i].getX() * tileSize + easterEgg.x;
+                    newObject.pixelY = (objects[i].getY() + oldYAdjust) * tileSize + easterEgg.y;
                 }
             }
         }
     }
 
     // clean up removed objects
-    objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.id == 0xFFFF;}), objects.end());
+    objects.erase(std::remove_if(objects.begin(), objects.end(), [](auto &obj){return obj.getId() == 0xFFFF;}), objects.end());
 }
 
 void World::updateTimeEasterEggs(uint32_t deltaMs)
@@ -1087,6 +1099,26 @@ void World::Object::renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY
         r.h *= zoom;
         SDL_RenderDrawRect(renderer, &r);
     }
+}
+
+uint16_t World::Object::getId() const
+{
+    return id;
+}
+
+int World::Object::getX() const
+{
+    return x;
+}
+
+int World::Object::getY() const
+{
+    return y;
+}
+
+const ObjectData *World::Object::getData() const
+{
+    return data;
 }
 
 const ObjectData::Frameset *World::Object::getCurrentFrameset() const

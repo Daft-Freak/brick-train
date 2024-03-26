@@ -57,6 +57,13 @@ private:
         void render(SDL_Renderer *renderer, int scrollX, int scrollY, int z, float zoom);
         void renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom);
 
+        uint16_t getId() const;
+
+        int getX() const;
+        int getY() const;
+
+        const ObjectData *getData() const;
+
         const ObjectData::Frameset *getCurrentFrameset() const;
         int getFrameDelay() const;
 
