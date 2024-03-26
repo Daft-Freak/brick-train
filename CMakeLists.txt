@@ -15,6 +15,7 @@ add_executable(BrickTrain
   FileLoader.cpp
   IniFile.cpp
   Main.cpp
+  Object.cpp
   ObjectData.cpp
   ObjectDataStore.cpp
   ResourceFile.cpp
