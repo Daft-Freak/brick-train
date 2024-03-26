@@ -17,7 +17,7 @@ static std::string convertUCS2ToUTF8(std::u16string_view u16)
 
         if(c <= 0x7F)
             ret += static_cast<char>(c);
-        else if(c <= 0x7FFF)
+        else if(c <= 0x7FF)
         {
             ret += static_cast<char>(0xC0 | c >> 6);
             ret += static_cast<char>(0x80 | (c & 0x3F));
