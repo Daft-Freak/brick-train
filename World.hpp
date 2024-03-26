@@ -62,7 +62,15 @@ private:
         int getX() const;
         int getY() const;
 
+        void setX(int x);
+        void setY(int y);
+        void setPosition(int x, int y);
+
         const ObjectData *getData() const;
+
+        void replace(uint16_t newId, std::shared_ptr<SDL_Texture> newTex = nullptr, const ObjectData *newData = nullptr);
+
+        void addMinifig(Minifig &&minifig);
 
         const ObjectData::Frameset *getCurrentFrameset() const;
         int getFrameDelay() const;
@@ -72,8 +80,11 @@ private:
 
         std::tuple<int, int> getFrameSize() const;
 
+        void setPixelPos(float x, float y);
+
         void setTargetPos(int tx, int ty, int vx, int vy, bool reverse = false);
 
+    private:
         uint16_t id;
         int x, y;
         std::string name;

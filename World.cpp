@@ -134,7 +134,7 @@ bool World::loadSave(const std::filesystem::path &path)
             // 4 bytes unknown (possibly uninitialised data?)
             char *minifigName = reinterpret_cast<char *>(minifigData + 8);
 
-            object.minifigs.emplace_back(Minifig{minifigId, minifigName});
+            object.addMinifig(Minifig{minifigId, minifigName});
 
             if(minifigId)
             {
@@ -616,9 +616,7 @@ void World::applyLoadEasterEggs()
 
         if(it != idMap.end())
         {
-            object.id = it->second;
-            object.data = objectDataStore.getObject(object.id);
-            object.texture = texLoader.loadTexture(object.id);
+            object.replace(it->second, texLoader.loadTexture(it->second), objectDataStore.getObject(it->second));
 
             object.setDefaultAnimation(); // saved animation may not exist in the new object
         }
@@ -718,16 +716,12 @@ void World::applyInsertEasterEggs()
                         auto overlapObj = getObjectAt(newX + x, newY + y + yAdjust);
                         // set an invalid id, we'll remove them later
                         if(overlapObj && overlapObj != &object)
-                            overlapObj->id = 0xFFFF;
+                            overlapObj->replace(0xFFFF);
                     }
                 }
 
-                object.x = newX;
-                object.y = newY;
-
-                object.id = easterEgg.changeId;
-                object.texture = texLoader.loadTexture(object.id);
-                object.data = newData;
+                object.setPosition(newX, newY);
+                object.replace(easterEgg.changeId, texLoader.loadTexture(easterEgg.changeId), newData);
             }
 
             if(easterEgg.changeFrameset != -1)
@@ -752,8 +746,7 @@ void World::applyInsertEasterEggs()
                 {
                     // objects without occupancy seem to use pixel offsets
                     // (rainbow)
-                    newObject.pixelX = objects[i].getX() * tileSize + easterEgg.x;
-                    newObject.pixelY = (objects[i].getY() + oldYAdjust) * tileSize + easterEgg.y;
+                    newObject.setPixelPos(objects[i].getX() * tileSize + easterEgg.x, (objects[i].getY() + oldYAdjust) * tileSize + easterEgg.y);
                 }
             }
         }
@@ -845,7 +838,7 @@ void World::updateTimeEasterEggs(uint32_t deltaMs)
                     targetY = y;
                     // if x was zero there is no target so scroll to the opposite side
                     targetX = xNonZero ? x : -std::get<0>(objectSize);
-                    object.x = width * tileSize;
+                    object.setX(width * tileSize);
 
                     velX = -speed;
                     break;
@@ -853,14 +846,13 @@ void World::updateTimeEasterEggs(uint32_t deltaMs)
                 case ObjectMotion::Starboard:
                     targetY = y;
                     targetX = xNonZero ? x : width * tileSize;
-                    object.x = -std::get<0>(objectSize);
+                    object.setX(-std::get<0>(objectSize));
 
                     velX = speed;
                     break;
             }
 
-            object.pixelX = object.x;
-            object.pixelY = object.y;
+            object.setPixelPos(object.getX(), object.getY());
 
             // reverse back to start if x was specified
             object.setTargetPos(targetX, targetY, velX, velY, xNonZero);
@@ -1116,9 +1108,38 @@ int World::Object::getY() const
     return y;
 }
 
+void World::Object::setX(int x)
+{
+    this->x = x;
+}
+
+void World::Object::setY(int y)
+{
+    this->y = y;
+}
+
+void World::Object::setPosition(int x, int y)
+{
+    setX(x);
+    setY(y);
+}
+
 const ObjectData *World::Object::getData() const
 {
     return data;
+}
+
+
+void World::Object::replace(uint16_t newId, std::shared_ptr<SDL_Texture> newTex, const ObjectData *newData)
+{
+    id = newId;
+    texture = newTex;
+    data = newData;
+}
+
+void World::Object::addMinifig(Minifig &&minifig)
+{
+    minifigs.emplace_back(std::move(minifig));
 }
 
 const ObjectData::Frameset *World::Object::getCurrentFrameset() const
@@ -1172,6 +1193,12 @@ std::tuple<int, int> World::Object::getFrameSize() const
     SDL_QueryTexture(texture.get(), nullptr, nullptr, &w, &h);
 
     return {w / data->totalFrames, h};
+}
+
+void World::Object::setPixelPos(float x, float y)
+{
+    pixelX = x;
+    pixelY = y;
 }
 
 void World::Object::setTargetPos(int tx, int ty, int vx, int vy, bool reverse)
