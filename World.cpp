@@ -310,6 +310,58 @@ void World::setWindowSize(unsigned int windowWidth, unsigned int windowHeight)
     clampScroll();
 }
 
+Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
+{
+    // attempt to get texture
+    auto texture = texLoader.loadTexture(id);
+
+    // load object data
+    auto data = objectDataStore.getObject(id);
+
+    // set alpha if semi-transparent
+    // assumes this object is the only user of the image
+    if(data && texture && data->semiTransparent)
+        SDL_SetTextureAlphaMod(texture.get(), 127);
+
+    return objects.emplace_back(id, x, y, name, texture, data);
+}
+
+Object *World::getObjectAt(unsigned int x, unsigned int y)
+{
+    // TODO: add some kind of lookup table for this
+    for(auto &object : objects)
+    {
+        auto objectData = object.getData();
+        if(!objectData)
+            continue;
+
+        auto objectX = object.getX();
+        auto objectY = object.getY();
+
+        // not something we should check
+        if(objectX < 0 || objectY < 0 || !objectData->physSizeX)
+            continue;
+
+        // check physical coords
+        unsigned int yAdjust = objectData->bitmapSizeY - objectData->physSizeY;
+
+        if(x < static_cast<unsigned int>(objectX) || y < static_cast<unsigned int>(objectY) + yAdjust)
+            continue;
+
+        if(x >= objectX + objectData->physSizeX || y >= objectY + yAdjust + objectData->physSizeY)
+            continue;
+
+        // check occupancy
+        int relX = x - objectX;
+        int relY = y - (objectY + yAdjust);
+
+        if(objectData->physicalOccupancy[relX + relY * objectData->physSizeX])
+            return &object;
+    }
+
+    return nullptr;
+}
+
 // load the "global" easter eggs from EE.INI
 void World::loadEasterEggs()
 {
@@ -507,58 +559,6 @@ void World::clampScroll()
 
     clampDim(worldWidth, windowWidth, scrollX);
     clampDim(worldHeight, windowHeight, scrollY);
-}
-
-Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
-{
-    // attempt to get texture
-    auto texture = texLoader.loadTexture(id);
-
-    // load object data
-    auto data = objectDataStore.getObject(id);
-
-    // set alpha if semi-transparent
-    // assumes this object is the only user of the image
-    if(data && texture && data->semiTransparent)
-        SDL_SetTextureAlphaMod(texture.get(), 127);
-
-    return objects.emplace_back(id, x, y, name, texture, data);
-}
-
-Object *World::getObjectAt(unsigned int x, unsigned int y)
-{
-    // TODO: add some kind of lookup table for this
-    for(auto &object : objects)
-    {
-        auto objectData = object.getData();
-        if(!objectData)
-            continue;
-
-        auto objectX = object.getX();
-        auto objectY = object.getY();
-
-        // not something we should check
-        if(objectX < 0 || objectY < 0 || !objectData->physSizeX)
-            continue;
-
-        // check physical coords
-        unsigned int yAdjust = objectData->bitmapSizeY - objectData->physSizeY;
-
-        if(x < static_cast<unsigned int>(objectX) || y < static_cast<unsigned int>(objectY) + yAdjust)
-            continue;
-
-        if(x >= objectX + objectData->physSizeX || y >= objectY + yAdjust + objectData->physSizeY)
-            continue;
-
-        // check occupancy
-        int relX = x - objectX;
-        int relY = y - (objectY + yAdjust);
-
-        if(objectData->physicalOccupancy[relX + relY * objectData->physSizeX])
-            return &object;
-    }
-
-    return nullptr;
 }
 
 void World::applyLoadEasterEggs()

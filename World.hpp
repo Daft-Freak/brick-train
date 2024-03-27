@@ -27,6 +27,9 @@ public:
 
     void setWindowSize(unsigned int windowWidth, unsigned int windowHeight);
 
+    Object &addObject(uint16_t id, uint16_t x, uint16_t y, std::string name);
+    Object *getObjectAt(unsigned int x, unsigned int y);
+
     static const int tileSize = 16;
 
 private:
@@ -66,9 +69,6 @@ private:
     void loadEasterEggs();
 
     void clampScroll();
-
-    Object &addObject(uint16_t id, uint16_t x, uint16_t y, std::string name);
-    Object *getObjectAt(unsigned int x, unsigned int y);
 
     void applyInsertEasterEggs();
     void applyLoadEasterEggs();
