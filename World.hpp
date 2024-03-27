@@ -10,6 +10,7 @@
 #include "Object.hpp"
 #include "ObjectDataStore.hpp"
 #include "TextureLoader.hpp"
+#include "Train.hpp"
 
 class World final
 {
@@ -96,4 +97,6 @@ private:
     std::shared_ptr<SDL_Texture> backdrop;
 
     std::vector<Object> objects;
+
+    std::vector<Train> trains;
 };

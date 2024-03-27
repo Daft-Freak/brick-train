@@ -46,6 +46,8 @@ public:
     void setDefaultAnimation();
     void setAnimation(int index);
 
+    void setAnimationFrame(int frame);
+
     std::tuple<int, int> getFrameSize() const;
 
     void setPixelPos(float x, float y);

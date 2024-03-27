@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "World.hpp"
+
 #include "IniFile.hpp"
 #include "ObjectData.hpp"
 
@@ -174,6 +175,12 @@ bool World::loadSave(const std::filesystem::path &path)
         }
 
         std::cout << std::endl;
+
+        Train train(*this, ids[0], name);
+
+        // TODO: carriages
+
+        trains.emplace_back(std::move(train));
     }
 
     clampScroll();
@@ -190,6 +197,9 @@ void World::update(uint32_t deltaMs)
 {
     for(auto &object : objects)
         object.update(deltaMs);
+
+    for(auto &train : trains)
+        train.update(deltaMs);
 
     updateTimeEasterEggs(deltaMs);
 
@@ -293,7 +303,10 @@ void World::render(SDL_Renderer *renderer)
     for(auto &object : objects)
         object.render(renderer, scrollX, scrollY, 1, zoom);
 
-    // TODO: minifigs/trains
+    // TODO: minifigs
+
+    for(auto &train : trains)
+        train.render(renderer, scrollX, scrollY, zoom);
 
     for(int z = 2; z < 7; z++)
     {

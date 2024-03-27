@@ -21,6 +21,7 @@ add_executable(BrickTrain
   ResourceFile.cpp
   StringTable.cpp
   TextureLoader.cpp
+  Train.cpp
   World.cpp
 )
 

@@ -322,6 +322,16 @@ void Object::setAnimation(int index)
     animationTimer = getFrameDelay();
 }
 
+void Object::setAnimationFrame(int frame)
+{
+    // this is for things like trains that have animations, but the real frame is determined by something else
+    // (orientation for trains)
+    if(frame < 0 || frame > data->totalFrames)
+        return;
+
+    currentAnimationFrame = frame;
+}
+
 std::tuple<int, int> Object::getFrameSize() const
 {
     if(!data || !texture)
