@@ -9,12 +9,10 @@ Train::Train(World &world, uint16_t engineId, std::string name) : world(world), 
 
 void Train::update(uint32_t deltaMs)
 {
-    static int tf = 0;
+    // update is going to apply the 0 from the default animation
+    int oldAnimFrame = engine.getAnimationFrame();
+
     engine.update(deltaMs);
-
-    tf = (tf + 1) % 128;
-
-    engine.setAnimationFrame(tf);
 
     // find the object we're currently on
     auto obj = world.getObjectAt(curObjectX, curObjectY);
@@ -110,6 +108,34 @@ void Train::update(uint32_t deltaMs)
 
     float newX = px0 + (px1 - px0) * frac;
     float newY = py0 + (py1 - py0) * frac;
+
+    // use the coord for the front of the train
+    // try to find the back
+    int rearCoordIndex = coordIndex + (objectCoordReverse ? -22 : 22);
+    // TODO: look back at least one object?
+    if(rearCoordIndex < 0)
+        rearCoordIndex = 0;
+    if(rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
+        rearCoordIndex = finalCoords.size() - 2;
+
+    if(rearCoordIndex != coordIndex)
+    {
+        getPixelCoord(finalCoords[rearCoordIndex], px0, py0, *obj);
+        getPixelCoord(finalCoords[rearCoordIndex + 1], px1, py1, *obj);
+
+        float rearX = px0 + (px1 - px0) * frac;
+        float rearY = py0 + (py1 - py0) * frac;
+
+        // orient train
+        float angle = std::atan2(rearX - newX, rearY - newY);
+        int frame = std::round(angle * 64.0f / M_PI);
+        
+        frame = (frame + 160) % 128;
+
+        engine.setAnimationFrame(frame);
+    }
+    else // preserve previous direction
+        engine.setAnimationFrame(oldAnimFrame);
 
     engine.setPixelPos(newX, newY);
 }
