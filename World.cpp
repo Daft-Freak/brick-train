@@ -83,6 +83,8 @@ bool World::loadSave(const std::filesystem::path &path)
     objects.clear();
     objects.reserve(numObjects);
 
+    std::vector<size_t> depots;
+
     for(uint32_t i = 0; i < numObjects; i++)
     {
         uint8_t objectData[0x80];
@@ -144,7 +146,14 @@ bool World::loadSave(const std::filesystem::path &path)
                           << int(minifigData[6]) << ", " << int(minifigData[7]) << std::dec << ")\n";
             }
         }
+
+        // collect depots for placing trains
+        if(object.getId() == 3156) // FIXME: use depot tag from .dat
+            depots.push_back(objects.size() - 1);
     }
+
+    // TODO: shuffle depots?
+    size_t depotIndex = 0;
 
     // trains
     for(uint32_t i = 0; i < numTrains; i++)
@@ -179,6 +188,14 @@ bool World::loadSave(const std::filesystem::path &path)
         Train train(*this, ids[0], name);
 
         // TODO: carriages
+
+        // assign to empty depot
+        // TODO: if not enough depots, trains need to leave the depot immediately
+        if(!depots.empty())
+        {
+            train.placeInObject(objects[depots[depotIndex]]);
+            depotIndex = (depotIndex + 1) % depots.size();
+        }
 
         trains.emplace_back(std::move(train));
     }
