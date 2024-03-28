@@ -27,4 +27,8 @@ private:
     bool objectCoordReverse = false; // moving along the coords backwards
     bool objectAltCoords = false; // use the other coords (points)
     int curObjectX = 0, curObjectY = 0;
+
+    bool prevObjectCoordReverse = false;
+    bool prevObjectAltCoords = false;
+    int prevObjectX = 0, prevObjectY = 0;
 };

@@ -9,9 +9,6 @@ Train::Train(World &world, uint16_t engineId, std::string name) : world(world), 
 
 void Train::update(uint32_t deltaMs)
 {
-    // update is going to apply the 0 from the default animation
-    int oldAnimFrame = engine.getAnimationFrame();
-
     engine.update(deltaMs);
 
     // find the object we're currently on
@@ -56,6 +53,13 @@ void Train::update(uint32_t deltaMs)
 
         if(!newObjData || newObjData->coords.empty())
             return; // not again...
+
+
+        // copy info for looking behind later
+        prevObjectCoordReverse = objectCoordReverse;
+        prevObjectAltCoords = objectAltCoords;
+        prevObjectX = curObjectX;
+        prevObjectY = curObjectY;
 
         // figure out which coord path we're on, and at which end
         // coords overlap so the last coord in the prev object is the second in the new one
@@ -111,31 +115,66 @@ void Train::update(uint32_t deltaMs)
 
     // use the coord for the front of the train
     // try to find the back
-    int rearCoordIndex = coordIndex + (objectCoordReverse ? -22 : 22);
-    // TODO: look back at least one object?
-    if(rearCoordIndex < 0)
-        rearCoordIndex = 0;
-    if(rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
-        rearCoordIndex = finalCoords.size() - 2;
+    int rearCoordIndex = coordIndex + (objectCoordReverse ? 22 : -22);
 
-    if(rearCoordIndex != coordIndex)
+    std::tuple<int, int> rearCoord0, rearCoord1;
+    auto rearObj = obj;
+
+    if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
     {
-        getPixelCoord(finalCoords[rearCoordIndex], px0, py0, *obj);
-        getPixelCoord(finalCoords[rearCoordIndex + 1], px1, py1, *obj);
+        if(prevObjectX == -1)
+        {
+            // no prev object, just clamp
+            rearCoordIndex = rearCoordIndex < 0 ? 0 : finalCoords.size() - 2;
+            rearCoord0 = finalCoords[rearCoordIndex];
+            rearCoord1 = finalCoords[rearCoordIndex + 1];
+        }
+        else
+        {
+            // look back at prev object
+            if(rearCoordIndex > 0)
+                rearCoordIndex = rearCoordIndex - (finalCoords.size() - 2);
+            else
+                rearCoordIndex = -rearCoordIndex;
 
-        float rearX = px0 + (px1 - px0) * frac;
-        float rearY = py0 + (py1 - py0) * frac;
+            // this should exist, we were just there
+            auto prevObj = world.getObjectAt(prevObjectX, prevObjectY);
+            auto prevObjData = prevObj->getData();
 
-        // orient train
-        float angle = std::atan2(rearX - newX, rearY - newY);
-        int frame = std::round(angle * 64.0f / M_PI);
-        
-        frame = (frame + 160) % 128;
+            auto &prevCoords = prevObjectAltCoords ? prevObjData->altCoords : prevObjData->coords;
+            
+            // clamp, not going back any further
+            if(rearCoordIndex >= static_cast<int>(prevCoords.size() - 1))
+                rearCoordIndex = prevCoords.size() - 2;
 
-        engine.setAnimationFrame(frame);
+            int index = prevObjectCoordReverse ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 1);
+
+            std::cout << index << " " << prevCoords.size() << " " << rearCoordIndex << std::endl;
+
+            rearCoord0 = prevCoords[index];
+            rearCoord1 = prevCoords[index + 1];
+            rearObj = prevObj;
+        }
     }
-    else // preserve previous direction
-        engine.setAnimationFrame(oldAnimFrame);
+    else
+    {
+        rearCoord0 = finalCoords[rearCoordIndex];
+        rearCoord1 = finalCoords[rearCoordIndex + 1];
+    }
+
+    getPixelCoord(rearCoord0, px0, py0, *rearObj);
+    getPixelCoord(rearCoord1, px1, py1, *rearObj);
+
+    float rearX = px0 + (px1 - px0) * frac;
+    float rearY = py0 + (py1 - py0) * frac;
+
+    // orient train
+    float angle = std::atan2(rearX - newX, rearY - newY);
+    int frame = std::round(angle * 64.0f / M_PI);
+    
+    frame = (frame + 96) % 128;
+
+    engine.setAnimationFrame(frame);
 
     engine.setPixelPos(newX, newY);
 }
@@ -163,6 +202,10 @@ void Train::placeInObject(Object &obj)
     objectAltCoords = false;
     curObjectX = obj.getX();
     curObjectY = obj.getY() + data->bitmapSizeY - data->physSizeY;
+
+    // clear prev objects
+    prevObjectX = -1;
+    prevObjectY = -1;
 }
 
 void Train::getPixelCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
