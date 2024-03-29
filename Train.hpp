@@ -16,7 +16,7 @@ public:
     void placeInObject(Object &obj);
 private:
 
-    void getPixelCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj);
+    void getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj);
 
     World &world;
     Object engine;

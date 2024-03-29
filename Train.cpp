@@ -38,7 +38,7 @@ void Train::update(uint32_t deltaMs)
         auto finalCoord = objectCoordReverse ? coords.front() : coords.back();
 
         int x, y;
-        getPixelCoord(finalCoord, x, y, *obj);
+        getWorldCoord(finalCoord, x, y, *obj);
     
         auto newObj = world.getObjectAt(x / World::tileSize, y / World::tileSize);
 
@@ -99,7 +99,7 @@ void Train::update(uint32_t deltaMs)
 
         auto newC = (objectAltCoords ? objData->altCoords : objData->coords)[coordIndex];
         int nx, ny;
-        getPixelCoord(newC, nx, ny, *obj);
+        getWorldCoord(newC, nx, ny, *obj);
     }
 
     // get coords again as object might have changed
@@ -107,8 +107,8 @@ void Train::update(uint32_t deltaMs)
     float frac = objectCoordPos - coordIndex;
 
     int px0, py0, px1, py1;
-    getPixelCoord(finalCoords[coordIndex], px0, py0, *obj);
-    getPixelCoord(finalCoords[coordIndex + 1], px1, py1, *obj);
+    getWorldCoord(finalCoords[coordIndex], px0, py0, *obj);
+    getWorldCoord(finalCoords[coordIndex + 1], px1, py1, *obj);
 
     float newX = px0 + (px1 - px0) * frac;
     float newY = py0 + (py1 - py0) * frac;
@@ -162,8 +162,8 @@ void Train::update(uint32_t deltaMs)
         rearCoord1 = finalCoords[rearCoordIndex + 1];
     }
 
-    getPixelCoord(rearCoord0, px0, py0, *rearObj);
-    getPixelCoord(rearCoord1, px1, py1, *rearObj);
+    getWorldCoord(rearCoord0, px0, py0, *rearObj);
+    getWorldCoord(rearCoord1, px1, py1, *rearObj);
 
     float rearX = px0 + (px1 - px0) * frac;
     float rearY = py0 + (py1 - py0) * frac;
@@ -194,7 +194,7 @@ void Train::placeInObject(Object &obj)
     auto coord = data->coords[0];
 
     int px, py;
-    getPixelCoord(coord, px, py, obj);
+    getWorldCoord(coord, px, py, obj);
     engine.setPixelPos(px, py);
 
     objectCoordPos = 0.0f;
@@ -208,7 +208,7 @@ void Train::placeInObject(Object &obj)
     prevObjectY = -1;
 }
 
-void Train::getPixelCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
+void Train::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
 {
     x = obj.getX() * World::tileSize + std::get<0>(coord);
     y = obj.getY() * World::tileSize + std::get<1>(coord);
