@@ -11,12 +11,19 @@
 class ObjectDataStore final
 {
 public:
+    using TrainData = std::vector<std::tuple<int, int, int, int>>;
+
     ObjectDataStore(FileLoader &fileLoader);
 
     const ObjectData *getObject(int32_t id);
+
+    const TrainData &getTrainData();
 
 private:
     FileLoader &fileLoader;
 
     std::map<int32_t, ObjectData> data;
+
+    // list of two pairs of coords from train.dat
+    TrainData trainData;
 };
