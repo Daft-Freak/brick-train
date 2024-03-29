@@ -174,6 +174,18 @@ void Train::update(uint32_t deltaMs)
 
     engine.setAnimationFrame(frame);
 
+    // adjust pos using the train data
+    auto &trainData = world.getObjectDataStore().getTrainData();
+
+    if(frame < static_cast<int>(trainData.size()))
+    {
+        auto engineData = engine.getData();
+        
+        // compensate for rendering using hotspot first
+        newX = newX + engineData->hotspotX - std::get<0>(trainData[frame]);
+        newY = newY + engineData->hotspotY - std::get<1>(trainData[frame]);
+    }
+
     engine.setPixelPos(newX, newY);
 }
 

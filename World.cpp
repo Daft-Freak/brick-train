@@ -340,6 +340,11 @@ void World::setWindowSize(unsigned int windowWidth, unsigned int windowHeight)
     clampScroll();
 }
 
+ObjectDataStore &World::getObjectDataStore()
+{
+    return objectDataStore;
+}
+
 Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
 {
     // attempt to get texture
