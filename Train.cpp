@@ -149,8 +149,6 @@ void Train::update(uint32_t deltaMs)
 
             int index = prevObjectCoordReverse ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 1);
 
-            std::cout << index << " " << prevCoords.size() << " " << rearCoordIndex << std::endl;
-
             rearCoord0 = prevCoords[index];
             rearCoord1 = prevCoords[index + 1];
             rearObj = prevObj;
