@@ -65,10 +65,34 @@ void Train::update(uint32_t deltaMs)
         // coords overlap so the last coord in the prev object is the second in the new one
         bool hasAlt = !newObjData->altCoords.empty();
 
+        bool matchesCoords = newObjData->coords[1] == std::make_tuple(x, y) || newObjData->coords[newObjData->coords.size() - 2] == std::make_tuple(x, y);
+        bool matchesAltCoords = false;
+
         if(hasAlt)
-            objectAltCoords = newObjData->altCoords[1] == std::make_tuple(x, y) || newObjData->altCoords[newObjData->altCoords.size() - 2] == std::make_tuple(x, y);
-        else
-            objectAltCoords = false;
+            matchesAltCoords = newObjData->altCoords[1] == std::make_tuple(x, y) || newObjData->altCoords[newObjData->altCoords.size() - 2] == std::make_tuple(x, y);
+
+        if(newObjData->specialType == ObjectData::SpecialType::Points)
+        {
+            auto fs = newObj->getCurrentFrameset();
+            bool open = fs && fs->name == "open";
+
+            // pick the right path for points
+            if(matchesCoords && matchesAltCoords)
+            {
+                if(open)
+                    matchesCoords = false;
+                else
+                    matchesAltCoords = false;
+            }
+            else
+            {
+                // may need to switch
+                if(open != matchesAltCoords)
+                    newObj->setAnimation(open ? "closed" : "open");
+            }
+        }
+
+        objectAltCoords = matchesAltCoords;
 
         auto &newCoords = objectAltCoords ? newObjData->altCoords : newObjData->coords;
 
