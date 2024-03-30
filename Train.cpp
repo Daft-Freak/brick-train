@@ -42,7 +42,7 @@ void Train::update(uint32_t deltaMs)
     
         auto newObj = world.getObjectAt(x / World::tileSize, y / World::tileSize);
 
-        if(!newObj)
+        if(!newObj || newObj == obj)
             return;
 
         // make coord relative to new object
