@@ -322,6 +322,27 @@ void Object::setAnimation(int index)
     animationTimer = getFrameDelay();
 }
 
+void Object::setAnimation(std::string_view name)
+{
+    if(!data)
+        return;
+
+    int index = 0;
+
+    for(auto &fs : data->framesets)
+    {
+        if(fs.name == name)
+        {
+            currentAnimation = index;
+            currentAnimationFrame = fs.startFrame;
+            animationTimer = getFrameDelay();
+            return;
+        }
+
+        index++;
+    }
+}
+
 void Object::setAnimationFrame(int frame)
 {
     // this is for things like trains that have animations, but the real frame is determined by something else

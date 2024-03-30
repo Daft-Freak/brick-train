@@ -45,6 +45,7 @@ public:
 
     void setDefaultAnimation();
     void setAnimation(int index);
+    void setAnimation(std::string_view name);
 
     void setAnimationFrame(int frame);
 
