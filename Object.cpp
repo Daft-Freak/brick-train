@@ -44,11 +44,11 @@ void Object::update(uint32_t deltaMs)
     }
 
     // TODO: sounds
-    if(currentAnimation != -1)
+    if(currentAnimation != -1 && animationTimer)
     {
         animationTimer -= deltaMs;
 
-        while(animationTimer < 0)
+        while(animationTimer <= 0)
         {
             auto &frameset = data->framesets[currentAnimation];
 
@@ -82,7 +82,7 @@ void Object::update(uint32_t deltaMs)
                 }
 
                 // otherwise stop
-                currentAnimation = frameset.nextFrameSet;
+                animationTimer = 0;
                 break;
             }
 
