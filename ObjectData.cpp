@@ -78,8 +78,8 @@ bool ObjectData::loadDatStream(std::istream &stream)
             return SpecialSide::Right;
         else if(str == "bottom")
             return SpecialSide::Bottom;
-        else if(str == "right")
-            return SpecialSide::Right;
+        else if(str == "left")
+            return SpecialSide::Left;
         else if(str == "horizontal")
             return SpecialSide::Horizontal;
         else if(str == "vertical")
