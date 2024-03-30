@@ -148,7 +148,7 @@ bool World::loadSave(const std::filesystem::path &path)
         }
 
         // collect depots for placing trains
-        if(object.getId() == 3156) // FIXME: use depot tag from .dat
+        if(object.getData() && object.getData()->specialType == ObjectData::SpecialType::Depot)
             depots.push_back(objects.size() - 1);
     }
 
