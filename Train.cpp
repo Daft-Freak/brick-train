@@ -213,6 +213,13 @@ void Train::placeInObject(Object &obj)
     curObjectX = obj.getX();
     curObjectY = obj.getY() + data->bitmapSizeY - data->physSizeY;
 
+    // flip direction so that we're always exiting a depot
+    if(data->specialType == ObjectData::SpecialType::Depot && (data->specialSide == ObjectData::SpecialSide::Bottom || data->specialSide == ObjectData::SpecialSide::Left))
+    {
+        objectCoordReverse = true;
+        objectCoordPos = data->coords.size() - 2;
+    }
+
     // clear prev objects
     prevObjectX = -1;
     prevObjectY = -1;
