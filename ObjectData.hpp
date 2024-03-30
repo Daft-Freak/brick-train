@@ -75,7 +75,7 @@ public:
 
     int rmbSeq = -1; // next object when pressing right mouse button while placing?
 
-    int hotspotX = 0, hotspotY = 0; // mouse related?
+    int hotspotX = 0, hotspotY = 0; // used for positioning when not aligned to tiles
 
     int maxMinifigForResource = 0; // max minifigs created here?
 
