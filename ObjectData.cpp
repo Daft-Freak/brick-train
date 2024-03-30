@@ -70,6 +70,24 @@ bool ObjectData::loadDatStream(std::istream &stream)
         return val;
     };
 
+    auto getSide = [](std::string_view str)
+    {
+        if(str == "top")
+            return SpecialSide::Top;
+        else if(str == "right")
+            return SpecialSide::Right;
+        else if(str == "bottom")
+            return SpecialSide::Bottom;
+        else if(str == "right")
+            return SpecialSide::Right;
+        else if(str == "horizontal")
+            return SpecialSide::Horizontal;
+        else if(str == "vertical")
+            return SpecialSide::Vertical;
+
+        return SpecialSide::None;
+    };
+
     while(std::getline(stream, line))
     {
         // trim trailing whitespace
@@ -239,6 +257,38 @@ bool ObjectData::loadDatStream(std::istream &stream)
                 }
                 else if(line == "semi-transparent")
                     semiTransparent = true;
+                // "special" objects
+                else if(split[0] == "bridge")
+                {
+                    specialType = SpecialType::Bridge;
+                    specialSide = getSide(split[1]);
+                }
+                else if(line == "crosstrack")
+                    specialType = SpecialType::CrossTrack;
+                else if(split[0] == "depot")
+                {
+                    specialType = SpecialType::Depot;
+                    specialSide = getSide(split[1]);
+                }
+                else if(split[0] == "levelcrossing")
+                {
+                    specialType = SpecialType::LevelCrossing;
+                    // TODO: road/path?
+                    specialSide = split[1].back() == 'h' ? SpecialSide::Horizontal : SpecialSide::Vertical;
+                }
+                else if(line == "points")
+                    specialType == SpecialType::Points;
+                else if(split[0] == "station")
+                {
+                    specialType = SpecialType::Station;
+                    specialSide = split[1] == "station-h" ? SpecialSide::Horizontal : SpecialSide::Vertical;
+                }
+                else if(split[0] == "tunnel")
+                {
+                    specialType = SpecialType::Tunnel;
+                    specialSide = getSide(split[1]);
+                }
+                // misc ignored things
                 else if(line == "animation")
                 {} // marks the animation section... sometimes
                 else if(line == "-9")

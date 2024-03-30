@@ -55,6 +55,32 @@ public:
         bool flipX = false;
     };
 
+    enum class SpecialType
+    {
+        None,
+
+        Bridge,
+        CrossTrack,
+        Depot,
+        LevelCrossing,
+        Points,
+        Station,
+        Tunnel,
+    };
+
+    enum class SpecialSide
+    {
+        None,
+
+        Top,
+        Right,
+        Bottom,
+        Left,
+
+        Horizontal,
+        Vertical,
+    };
+
     std::string name;
 
     unsigned int physSizeX = 0, physSizeY = 0, physSizeZ = 0;
@@ -98,4 +124,9 @@ public:
 
     int buttonOffset[3] = {0, 0, 0};
     bool buttonVisible = true;
+
+    // used by a lot of track pieces
+    // (e.g. "bridge horizontal", "depot top")
+    SpecialType specialType = SpecialType::None;
+    SpecialSide specialSide = SpecialSide::None;
 };
