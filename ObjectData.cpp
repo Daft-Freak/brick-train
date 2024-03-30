@@ -277,7 +277,7 @@ bool ObjectData::loadDatStream(std::istream &stream)
                     specialSide = split[1].back() == 'h' ? SpecialSide::Horizontal : SpecialSide::Vertical;
                 }
                 else if(line == "points")
-                    specialType == SpecialType::Points;
+                    specialType = SpecialType::Points;
                 else if(split[0] == "station")
                 {
                     specialType = SpecialType::Station;
