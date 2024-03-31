@@ -14,9 +14,12 @@ public:
     void render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom);
 
     void placeInObject(Object &obj);
-private:
 
+private:
     void getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj);
+
+    void enterObject(Object &obj);
+    void leaveObject(Object &obj);
 
     World &world;
     Object engine;

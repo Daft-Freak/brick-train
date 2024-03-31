@@ -54,6 +54,14 @@ void Train::update(uint32_t deltaMs)
         if(!newObjData || newObjData->coords.empty())
             return; // not again...
 
+        // leave existing prev
+        if(prevObjectX != -1)
+        {
+            // TODO: this may be a bit early
+            auto prevObj = world.getObjectAt(prevObjectX, prevObjectY);
+            if(prevObj)
+                leaveObject(*prevObj);
+        }
 
         // copy info for looking behind later
         prevObjectCoordReverse = objectCoordReverse;
@@ -111,6 +119,9 @@ void Train::update(uint32_t deltaMs)
             objectCoordPos = (newCoords.size() - 2) + objectCoordPos;
 
         objectCoordReverse = newRev;
+
+        // enter new object
+        enterObject(*newObj);
 
         // use new object
         obj = newObj;
@@ -180,6 +191,17 @@ void Train::update(uint32_t deltaMs)
     }
     else
     {
+        // rear of train is in same object
+        if(prevObjectX != -1)
+        {
+            // leave and clear prev obj
+            auto prevObj = world.getObjectAt(prevObjectX, prevObjectY);
+            if(prevObj)
+                leaveObject(*prevObj);
+
+            prevObjectX = prevObjectY = -1;
+        }
+
         rearCoord0 = finalCoords[rearCoordIndex];
         rearCoord1 = finalCoords[rearCoordIndex + 1];
     }
@@ -244,6 +266,8 @@ void Train::placeInObject(Object &obj)
         objectCoordPos = data->coords.size() - 2;
     }
 
+    enterObject(obj);
+
     // clear prev objects
     prevObjectX = -1;
     prevObjectY = -1;
@@ -253,4 +277,25 @@ void Train::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, con
 {
     x = obj.getX() * World::tileSize + std::get<0>(coord);
     y = obj.getY() * World::tileSize + std::get<1>(coord);
+}
+
+void Train::enterObject(Object &obj)
+{
+    // close crossing on train entering
+    // TODO: should do before train reaches
+    // TODO: make sure there are no minifigs
+    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
+    {
+        // animation name is inconsistent
+        if(!obj.setAnimation("closed"))
+            obj.setAnimation("default");
+    }
+}
+
+void Train::leaveObject(Object &obj)
+{
+    // re-open crossing after train leaves
+    // TODO: delay?
+    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
+        obj.setAnimation("open");
 }
