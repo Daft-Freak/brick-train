@@ -309,10 +309,10 @@ void Object::setDefaultAnimation()
         setAnimation(data->defaultFrameset);
 }
 
-void Object::setAnimation(int index)
+bool Object::setAnimation(int index)
 {
     if(index < 0 || !data || index > data->numFramesets)
-        return;
+        return false;
 
     currentAnimation = index;
 
@@ -320,12 +320,14 @@ void Object::setAnimation(int index)
     currentAnimationFrame = frameset.startFrame;
 
     animationTimer = getFrameDelay();
+
+    return true;
 }
 
-void Object::setAnimation(std::string_view name)
+bool Object::setAnimation(std::string_view name)
 {
     if(!data)
-        return;
+        return false;
 
     int index = 0;
 
@@ -336,11 +338,13 @@ void Object::setAnimation(std::string_view name)
             currentAnimation = index;
             currentAnimationFrame = fs.startFrame;
             animationTimer = getFrameDelay();
-            return;
+            return true;
         }
 
         index++;
     }
+
+    return false;
 }
 
 void Object::setAnimationFrame(int frame)
