@@ -202,7 +202,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     std::tuple<int, int> rearCoord0, rearCoord1;
     auto rearObj = obj;
 
-    bool rearInOldest = false;
+    int lastUsedObj = -1;
 
     if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
     {
@@ -233,8 +233,13 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
 
             if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
             {
-                if(i == 2)
-                    rearInOldest = true;
+                lastUsedObj = i;
+
+                // keep a buffer for calculating next car pos
+                int remainingCoords = prevObjectCoordReverse[i] ? rearCoordMax - rearCoordIndex : rearCoordIndex;
+
+                if(remainingCoords <= 16)
+                    lastUsedObj++;
 
                 rearCoord0 = prevCoords[rearCoordIndex];
                 rearCoord1 = prevCoords[rearCoordIndex + 1];
@@ -257,16 +262,25 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         // rear of train is in same object
         rearCoord0 = finalCoords[rearCoordIndex];
         rearCoord1 = finalCoords[rearCoordIndex + 1];
+
+        // keep buffer
+        int remainingCoords = objectCoordReverse ? finalCoords.size() - 1 - rearCoordIndex : rearCoordIndex;
+
+        if(remainingCoords <= 16)
+            lastUsedObj++;
     }
 
-    if(!rearInOldest && prevObjectX[2] != -1)
+    // leave objects
+    for(int i = 2; i > lastUsedObj; i--)
     {
-        // have left oldest tracked object
-        auto prevObj = parent.world.getObjectAt(prevObjectX[2], prevObjectY[2]);
-        if(prevObj)
-            parent.leaveObject(*prevObj);
+        if(prevObjectX[i] != -1)
+        {
+            auto prevObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
+            if(prevObj)
+                parent.leaveObject(*prevObj);
 
-        prevObjectX[2] = prevObjectY[2] = -1;
+            prevObjectX[i] = prevObjectY[i] = -1;
+        }
     }
 
     getWorldCoord(rearCoord0, px0, py0, *rearObj);
