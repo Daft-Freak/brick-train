@@ -39,9 +39,9 @@ private:
         bool objectAltCoords = false; // use the other coords (points)
         int curObjectX = 0, curObjectY = 0;
 
-        bool prevObjectCoordReverse[2] = {false, false};
-        bool prevObjectAltCoords[2] = {false, false};
-        int prevObjectX[2] = {0, 0}, prevObjectY[2] = {0, 0};
+        bool prevObjectCoordReverse[3] = {false, false, false};
+        bool prevObjectAltCoords[3] = {false, false, false};
+        int prevObjectX[3] = {0, 0, 0}, prevObjectY[3] = {0, 0, 0};
     };
 
     void enterObject(Object &obj);

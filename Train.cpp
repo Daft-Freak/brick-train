@@ -103,10 +103,13 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
             return false; // not again...
 
         // copy info for looking behind later
-        prevObjectCoordReverse[1] = prevObjectCoordReverse[0];
-        prevObjectAltCoords[1] = prevObjectAltCoords[0];
-        prevObjectX[1] = prevObjectX[0];
-        prevObjectY[1] = prevObjectY[0];
+        for(int i = 2; i > 0; i--)
+        {
+            prevObjectCoordReverse[i] = prevObjectCoordReverse[i - 1];
+            prevObjectAltCoords[i] = prevObjectAltCoords[i - 1];
+            prevObjectX[i] = prevObjectX[i - 1];
+            prevObjectY[i] = prevObjectY[i - 1];
+        }
 
         prevObjectCoordReverse[0] = objectCoordReverse;
         prevObjectAltCoords[0] = objectAltCoords;
@@ -199,7 +202,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     std::tuple<int, int> rearCoord0, rearCoord1;
     auto rearObj = obj;
 
-    bool rearInPrev1 = false;
+    bool rearInOldest = false;
 
     if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
     {
@@ -207,7 +210,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         int rearCoordMax = finalCoords.size() - 1;
         bool prevAlt = objectAltCoords;
 
-        for(int i = 0; i < 2; i++)
+        for(int i = 0; i < 3; i++)
         {
             if(prevObjectX[i] == -1)
                 break;
@@ -230,8 +233,8 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
 
             if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
             {
-                if(i == 1)
-                    rearInPrev1 = true;
+                if(i == 2)
+                    rearInOldest = true;
 
                 rearCoord0 = prevCoords[rearCoordIndex];
                 rearCoord1 = prevCoords[rearCoordIndex + 1];
@@ -256,14 +259,14 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         rearCoord1 = finalCoords[rearCoordIndex + 1];
     }
 
-    if(!rearInPrev1 && prevObjectX[1] != -1)
+    if(!rearInOldest && prevObjectX[2] != -1)
     {
         // have left oldest tracked object
-        auto prevObj = parent.world.getObjectAt(prevObjectX[1], prevObjectY[1]);
+        auto prevObj = parent.world.getObjectAt(prevObjectX[2], prevObjectY[2]);
         if(prevObj)
             parent.leaveObject(*prevObj);
 
-        prevObjectX[1] = prevObjectY[1] = -1;
+        prevObjectX[2] = prevObjectY[2] = -1;
     }
 
     getWorldCoord(rearCoord0, px0, py0, *rearObj);
@@ -323,8 +326,11 @@ void Train::Part::placeInObject(Object &inObj)
     }
 
     // clear prev objects
-    prevObjectX[0] = prevObjectY[0] = -1;
-    prevObjectX[1] = prevObjectY[1] = -1;
+    for(int i = 0; i < 3; i++)
+    {
+        prevObjectX[i] = -1;
+        prevObjectY[i] = -1;
+    }
 }
 
 void Train::Part::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
@@ -341,7 +347,7 @@ void Train::Part::copyPosition(const Part &other)
     curObjectX = other.curObjectX;
     curObjectY = other.curObjectY;
 
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 3; i++)
     {
         prevObjectCoordReverse[i] = other.prevObjectCoordReverse[i];
         prevObjectAltCoords[i] = other.prevObjectAltCoords[i];
