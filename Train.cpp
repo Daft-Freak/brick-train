@@ -224,11 +224,11 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
 
             auto &prevCoords = prevObjectAltCoords[i] ? rearObjData->altCoords : rearObjData->coords;
 
-            rearCoordIndex = prevObjectCoordReverse[i] ? rearCoordIndex + 1 : prevCoords.size() - (rearCoordIndex + 2);
+            rearCoordIndex = prevObjectCoordReverse[i] ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 2);
             rearCoordMax = prevCoords.size() - 1;
             prevAlt = prevObjectAltCoords[i];
 
-            if(rearCoordIndex > 0 && rearCoordIndex < rearCoordMax)
+            if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
             {
                 if(i == 1)
                     rearInPrev1 = true;
