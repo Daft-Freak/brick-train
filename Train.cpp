@@ -197,78 +197,8 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
 
     // use the coord for the front of the train
     // try to find the back
-    int rearCoordIndex = coordIndex + (objectCoordReverse ? 22 : -22);
-
-    std::tuple<int, int> rearCoord0, rearCoord1;
-    auto rearObj = obj;
-
-    int lastUsedObj = -1;
-
-    if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
-    {
-        auto rearObjData = objData;
-        int rearCoordMax = finalCoords.size() - 1;
-        bool prevAlt = objectAltCoords;
-
-        for(int i = 0; i < 3; i++)
-        {
-            if(prevObjectX[i] == -1)
-                break;
-
-            // look back at prev object
-            if(rearCoordIndex > 0)
-                rearCoordIndex = rearCoordIndex - (rearCoordMax - 1);
-            else
-                rearCoordIndex = -rearCoordIndex;
-
-            // this should exist, we were just there
-            rearObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
-            rearObjData = rearObj->getData();
-
-            auto &prevCoords = prevObjectAltCoords[i] ? rearObjData->altCoords : rearObjData->coords;
-
-            rearCoordIndex = prevObjectCoordReverse[i] ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 2);
-            rearCoordMax = prevCoords.size() - 1;
-            prevAlt = prevObjectAltCoords[i];
-
-            if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
-            {
-                lastUsedObj = i;
-
-                // keep a buffer for calculating next car pos
-                int remainingCoords = prevObjectCoordReverse[i] ? rearCoordMax - rearCoordIndex : rearCoordIndex;
-
-                if(remainingCoords <= 16)
-                    lastUsedObj++;
-
-                rearCoord0 = prevCoords[rearCoordIndex];
-                rearCoord1 = prevCoords[rearCoordIndex + 1];
-                break;
-            }
-        }
-
-        if(rearObj == obj || rearCoordIndex < 0 || rearCoordIndex >= rearCoordMax)
-        {
-            // still failed, clamp
-            auto &prevCoords = prevAlt ? rearObjData->altCoords : rearObjData->coords;
-
-            rearCoordIndex = rearCoordIndex < 0 ? 0 : rearCoordMax - 1;
-            rearCoord0 = prevCoords[rearCoordIndex];
-            rearCoord1 = prevCoords[rearCoordIndex + 1];
-        }
-    }
-    else
-    {
-        // rear of train is in same object
-        rearCoord0 = finalCoords[rearCoordIndex];
-        rearCoord1 = finalCoords[rearCoordIndex + 1];
-
-        // keep buffer
-        int remainingCoords = objectCoordReverse ? finalCoords.size() - 1 - rearCoordIndex : rearCoordIndex;
-
-        if(remainingCoords <= 16)
-            lastUsedObj++;
-    }
+    int lastUsedObj;
+    auto rearCoord = lookBehind(22, obj, objData, lastUsedObj);
 
     // leave objects
     for(int i = 2; i > lastUsedObj; i--)
@@ -283,11 +213,8 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         }
     }
 
-    getWorldCoord(rearCoord0, px0, py0, *rearObj);
-    getWorldCoord(rearCoord1, px1, py1, *rearObj);
-
-    float rearX = px0 + (px1 - px0) * frac;
-    float rearY = py0 + (py1 - py0) * frac;
+    float rearX = std::get<0>(rearCoord);
+    float rearY = std::get<1>(rearCoord);
 
     // orient train
     float angle = std::atan2(rearX - newX, rearY - newY);
@@ -368,4 +295,93 @@ void Train::Part::copyPosition(const Part &other)
         prevObjectX[i] = other.prevObjectX[i];
         prevObjectY[i] = other.prevObjectY[i];
     }
+}
+
+std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj)
+{
+    auto &finalCoords = objectAltCoords ? objData->altCoords : objData->coords;
+
+    int coordIndex = std::floor(objectCoordPos);
+    float frac = objectCoordPos - coordIndex;
+
+    int rearCoordIndex = coordIndex + (objectCoordReverse ? dist : -dist);
+
+    std::tuple<int, int> rearCoord0, rearCoord1;
+    auto rearObj = obj;
+
+    if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
+    {
+        auto rearObjData = objData;
+        int rearCoordMax = finalCoords.size() - 1;
+        bool prevAlt = objectAltCoords;
+
+        for(int i = 0; i < 3; i++)
+        {
+            if(prevObjectX[i] == -1)
+                break;
+
+            // look back at prev object
+            if(rearCoordIndex > 0)
+                rearCoordIndex = rearCoordIndex - (rearCoordMax - 1);
+            else
+                rearCoordIndex = -rearCoordIndex;
+
+            // this should exist, we were just there
+            rearObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
+            rearObjData = rearObj->getData();
+
+            auto &prevCoords = prevObjectAltCoords[i] ? rearObjData->altCoords : rearObjData->coords;
+
+            rearCoordIndex = prevObjectCoordReverse[i] ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 2);
+            rearCoordMax = prevCoords.size() - 1;
+            prevAlt = prevObjectAltCoords[i];
+
+            if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
+            {
+                lastUsedObj = i;
+
+                // keep a buffer for calculating next car pos
+                int remainingCoords = prevObjectCoordReverse[i] ? rearCoordMax - rearCoordIndex : rearCoordIndex;
+
+                if(remainingCoords <= 16)
+                    lastUsedObj++;
+
+                rearCoord0 = prevCoords[rearCoordIndex];
+                rearCoord1 = prevCoords[rearCoordIndex + 1];
+                break;
+            }
+        }
+
+        if(rearObj == obj || rearCoordIndex < 0 || rearCoordIndex >= rearCoordMax)
+        {
+            // still failed, clamp
+            auto &prevCoords = prevAlt ? rearObjData->altCoords : rearObjData->coords;
+
+            rearCoordIndex = rearCoordIndex < 0 ? 0 : rearCoordMax - 1;
+            rearCoord0 = prevCoords[rearCoordIndex];
+            rearCoord1 = prevCoords[rearCoordIndex + 1];
+        }
+    }
+    else
+    {
+        // rear of train is in same object
+        rearCoord0 = finalCoords[rearCoordIndex];
+        rearCoord1 = finalCoords[rearCoordIndex + 1];
+
+        // keep buffer
+        int remainingCoords = objectCoordReverse ? finalCoords.size() - 1 - rearCoordIndex : rearCoordIndex;
+
+        if(remainingCoords <= 16)
+            lastUsedObj++;
+    }
+
+    int px0, py0, px1, py1;
+
+    getWorldCoord(rearCoord0, px0, py0, *rearObj);
+    getWorldCoord(rearCoord1, px1, py1, *rearObj);
+
+    float rearX = px0 + (px1 - px0) * frac;
+    float rearY = py0 + (py1 - py0) * frac;
+
+    return {rearX, rearY};
 }

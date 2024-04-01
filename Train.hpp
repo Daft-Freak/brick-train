@@ -31,6 +31,8 @@ private:
 
         void copyPosition(const Part &other);
 
+        std::tuple<float, float> lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj);
+
         Train &parent;
         Object object;
 
