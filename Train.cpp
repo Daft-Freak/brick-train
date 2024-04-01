@@ -2,25 +2,73 @@
 
 #include "World.hpp"
 
-Train::Train(World &world, uint16_t engineId, std::string name) : world(world), engine(std::move(world.addObject(engineId, 0, 0, name)))
+Train::Train(World &world, uint16_t engineId, std::string name) : world(world), engine(*this, std::move(world.addObject(engineId, 0, 0, name)))
 {
     speed = 35; // TODO: min/max speed from .dat
 }
 
+Train::Train(Train &&other) : world(other.world), engine(*this, std::move(other.engine.object))
+{
+    speed = other.speed;
+
+    engine.copyPosition(other.engine);
+}
+
 void Train::update(uint32_t deltaMs)
 {
-    engine.update(deltaMs);
+    engine.update(deltaMs, speed);
+}
+
+void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
+{
+    engine.object.render(renderer, scrollX, scrollY, 6, zoom);
+}
+
+void Train::placeInObject(Object &obj)
+{
+    engine.placeInObject(obj);
+    enterObject(obj);
+}
+
+void Train::enterObject(Object &obj)
+{
+    // close crossing on train entering
+    // TODO: should do before train reaches
+    // TODO: make sure there are no minifigs
+    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
+    {
+        // animation name is inconsistent
+        if(!obj.setAnimation("closed"))
+            obj.setAnimation("default");
+    }
+}
+
+void Train::leaveObject(Object &obj)
+{
+    // re-open crossing after train leaves
+    // TODO: delay?
+    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
+        obj.setAnimation("open");
+}
+
+Train::Part::Part(Train &parent, Object &&object) : parent(parent), object(std::move(object))
+{
+}
+
+bool Train::Part::update(uint32_t deltaMs, int speed)
+{
+    object.update(deltaMs);
 
     // find the object we're currently on
-    auto obj = world.getObjectAt(curObjectX, curObjectY);
+    auto obj = parent.world.getObjectAt(curObjectX, curObjectY);
 
     if(!obj)
-        return; // uh oh
+        return false; // uh oh
 
     auto objData = obj->getData();
 
     if(!objData || objData->coords.empty())
-        return; // how did we get here?
+        return false; // how did we get here?
 
     // advance
     int dir = objectCoordReverse ? -1 : 1;
@@ -40,10 +88,10 @@ void Train::update(uint32_t deltaMs)
         int x, y;
         getWorldCoord(finalCoord, x, y, *obj);
     
-        auto newObj = world.getObjectAt(x / World::tileSize, y / World::tileSize);
+        auto newObj = parent.world.getObjectAt(x / World::tileSize, y / World::tileSize);
 
         if(!newObj || newObj == obj)
-            return;
+            return false;
 
         // make coord relative to new object
         x -= newObj->getX() * World::tileSize;
@@ -52,15 +100,15 @@ void Train::update(uint32_t deltaMs)
         auto newObjData = newObj->getData();
 
         if(!newObjData || newObjData->coords.empty())
-            return; // not again...
+            return false; // not again...
 
         // leave existing prev
         if(prevObjectX != -1)
         {
             // TODO: this may be a bit early
-            auto prevObj = world.getObjectAt(prevObjectX, prevObjectY);
+            auto prevObj = parent.world.getObjectAt(prevObjectX, prevObjectY);
             if(prevObj)
-                leaveObject(*prevObj);
+                parent.leaveObject(*prevObj);
         }
 
         // copy info for looking behind later
@@ -121,7 +169,7 @@ void Train::update(uint32_t deltaMs)
         objectCoordReverse = newRev;
 
         // enter new object
-        enterObject(*newObj);
+        parent.enterObject(*newObj);
 
         // use new object
         obj = newObj;
@@ -173,7 +221,7 @@ void Train::update(uint32_t deltaMs)
                 rearCoordIndex = -rearCoordIndex;
 
             // this should exist, we were just there
-            auto prevObj = world.getObjectAt(prevObjectX, prevObjectY);
+            auto prevObj = parent.world.getObjectAt(prevObjectX, prevObjectY);
             auto prevObjData = prevObj->getData();
 
             auto &prevCoords = prevObjectAltCoords ? prevObjData->altCoords : prevObjData->coords;
@@ -195,9 +243,9 @@ void Train::update(uint32_t deltaMs)
         if(prevObjectX != -1)
         {
             // leave and clear prev obj
-            auto prevObj = world.getObjectAt(prevObjectX, prevObjectY);
+            auto prevObj = parent.world.getObjectAt(prevObjectX, prevObjectY);
             if(prevObj)
-                leaveObject(*prevObj);
+                parent.leaveObject(*prevObj);
 
             prevObjectX = prevObjectY = -1;
         }
@@ -218,31 +266,27 @@ void Train::update(uint32_t deltaMs)
     
     frame = (frame + 96) % 128;
 
-    engine.setAnimationFrame(frame);
+    object.setAnimationFrame(frame);
 
     // adjust pos using the train data
-    auto &trainData = world.getObjectDataStore().getTrainData();
+    auto &trainData = parent.world.getObjectDataStore().getTrainData();
 
     if(frame < static_cast<int>(trainData.size()))
     {
-        auto engineData = engine.getData();
+        auto engineData = object.getData();
         
         // compensate for rendering using hotspot first
         newX = newX + engineData->hotspotX - std::get<0>(trainData[frame]);
         newY = newY + engineData->hotspotY - std::get<1>(trainData[frame]);
     }
 
-    engine.setPixelPos(newX, newY);
+    object.setPixelPos(newX, newY);
+    return true;
 }
 
-void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
+void Train::Part::placeInObject(Object &inObj)
 {
-    engine.render(renderer, scrollX, scrollY, 6, zoom);
-}
-
-void Train::placeInObject(Object &obj)
-{
-    auto data = obj.getData();
+    auto data = inObj.getData();
 
     if(!data || data->coords.empty())
         return;
@@ -250,14 +294,14 @@ void Train::placeInObject(Object &obj)
     auto coord = data->coords[0];
 
     int px, py;
-    getWorldCoord(coord, px, py, obj);
-    engine.setPixelPos(px, py);
+    getWorldCoord(coord, px, py, inObj);
+    object.setPixelPos(px, py);
 
     objectCoordPos = 0.0f;
     objectCoordReverse = false;
     objectAltCoords = false;
-    curObjectX = obj.getX();
-    curObjectY = obj.getY() + data->bitmapSizeY - data->physSizeY;
+    curObjectX = inObj.getX();
+    curObjectY = inObj.getY() + data->bitmapSizeY - data->physSizeY;
 
     // flip direction so that we're always exiting a depot
     if(data->specialType == ObjectData::SpecialType::Depot && (data->specialSide == ObjectData::SpecialSide::Bottom || data->specialSide == ObjectData::SpecialSide::Left))
@@ -266,36 +310,27 @@ void Train::placeInObject(Object &obj)
         objectCoordPos = data->coords.size() - 2;
     }
 
-    enterObject(obj);
-
     // clear prev objects
     prevObjectX = -1;
     prevObjectY = -1;
 }
 
-void Train::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
+void Train::Part::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
 {
     x = obj.getX() * World::tileSize + std::get<0>(coord);
     y = obj.getY() * World::tileSize + std::get<1>(coord);
 }
 
-void Train::enterObject(Object &obj)
+void Train::Part::copyPosition(const Part &other)
 {
-    // close crossing on train entering
-    // TODO: should do before train reaches
-    // TODO: make sure there are no minifigs
-    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
-    {
-        // animation name is inconsistent
-        if(!obj.setAnimation("closed"))
-            obj.setAnimation("default");
-    }
-}
+    objectCoordPos = other.objectCoordPos;
+    objectCoordReverse = other.objectCoordReverse;
+    objectAltCoords = other.objectAltCoords;
+    curObjectX = other.curObjectX;
+    curObjectY = other.curObjectY;
 
-void Train::leaveObject(Object &obj)
-{
-    // re-open crossing after train leaves
-    // TODO: delay?
-    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
-        obj.setAnimation("open");
+    prevObjectCoordReverse = other.prevObjectCoordReverse;
+    prevObjectAltCoords = other.prevObjectAltCoords;
+    prevObjectX = other.prevObjectX;
+    prevObjectY = other.prevObjectY;
 }
