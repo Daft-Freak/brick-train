@@ -309,6 +309,8 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
     std::tuple<int, int> rearCoord0, rearCoord1;
     auto rearObj = obj;
 
+    lastUsedObj = -1;
+
     if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
     {
         auto rearObjData = objData;
