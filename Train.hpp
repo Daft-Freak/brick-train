@@ -24,6 +24,7 @@ private:
         Part(Train &parent, Object &&object);
 
         bool update(uint32_t deltaMs, int speed);
+        bool update(uint32_t deltaMs, Part &prevPart);
 
         void placeInObject(Object &obj);
     
@@ -31,7 +32,13 @@ private:
 
         void copyPosition(const Part &other);
 
-        std::tuple<float, float> lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj);
+        std::tuple<float, float> getNextCarriagePos(int &finalCoordIndex, float &finalCoordPos);
+
+        void setPosition(Object *obj, const ObjectData *objData, float newX, float newY);
+
+        void getObjectCoords(int index, bool &rev, bool &alt, int &x, int &y);
+
+        std::tuple<float, float> lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj, int &finalObjectIndex, float &finalCoordPos);
 
         Train &parent;
         Object object;
@@ -51,6 +58,8 @@ private:
 
     World &world;
     Part engine;
+
+    std::vector<Part> carriages;
 
     int speed;
 };

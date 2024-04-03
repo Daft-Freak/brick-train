@@ -10,23 +10,50 @@ Train::Train(World &world, uint16_t engineId, std::string name) : world(world), 
 Train::Train(Train &&other) : world(other.world), engine(*this, std::move(other.engine.object))
 {
     speed = other.speed;
+    
+    for(auto &carriage : other.carriages)
+    {
+        carriages.emplace_back(*this, std::move(carriage.object));
+        carriages.back().copyPosition(carriage);
+    }
 
     engine.copyPosition(other.engine);
 }
 
 void Train::update(uint32_t deltaMs)
 {
-    engine.update(deltaMs, speed);
+    if(!engine.update(deltaMs, speed))
+        return;
+
+    bool first = true;
+    
+    for(auto it = carriages.begin(); it != carriages.end(); ++it)
+    {
+        if(!it->update(deltaMs, first ? engine : *(it - 1)))
+            break;
+
+        first = false;
+    }
+
 }
 
 void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
 {
     engine.object.render(renderer, scrollX, scrollY, 6, zoom);
+
+    // TODO: z-order
+    for(auto &carriage : carriages)
+        carriage.object.render(renderer, scrollX, scrollY, 6, zoom);
+
 }
 
 void Train::placeInObject(Object &obj)
 {
     engine.placeInObject(obj);
+
+    for(auto &carriage : carriages)
+        carriage.placeInObject(obj);
+
     enterObject(obj);
 }
 
@@ -195,48 +222,60 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     float newX = px0 + (px1 - px0) * frac;
     float newY = py0 + (py1 - py0) * frac;
 
-    // use the coord for the front of the train
-    // try to find the back
-    int lastUsedObj;
-    auto rearCoord = lookBehind(22, obj, objData, lastUsedObj);
+    setPosition(obj, objData, newX, newY);
+    return true;
+}
 
-    // leave objects
-    for(int i = 2; i > lastUsedObj; i--)
+bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
+{
+    object.update(deltaMs);
+
+    // get position from prev part
+    int coordIndex;
+    auto pos = prevPart.getNextCarriagePos(coordIndex, objectCoordPos);
+
+    float newX = std::get<0>(pos);
+    float newY = std::get<1>(pos);
+
+    int newObjX, newObjY;
+    bool newAlt, newRev;
+    prevPart.getObjectCoords(coordIndex, newRev, newAlt, newObjX, newObjY);
+
+    if(newObjX != curObjectX || newObjY != curObjectY)
     {
-        if(prevObjectX[i] != -1)
+        // copy info for looking behind later
+        for(int i = 2; i > 0; i--)
         {
-            auto prevObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
-            if(prevObj)
-                parent.leaveObject(*prevObj);
-
-            prevObjectX[i] = prevObjectY[i] = -1;
+            prevObjectCoordReverse[i] = prevObjectCoordReverse[i - 1];
+            prevObjectAltCoords[i] = prevObjectAltCoords[i - 1];
+            prevObjectX[i] = prevObjectX[i - 1];
+            prevObjectY[i] = prevObjectY[i - 1];
         }
+
+        prevObjectCoordReverse[0] = objectCoordReverse;
+        prevObjectAltCoords[0] = objectAltCoords;
+        prevObjectX[0] = curObjectX;
+        prevObjectY[0] = curObjectY;
+
+        // set new obj
+        objectCoordReverse = newRev;
+        objectAltCoords = newAlt;
+        curObjectX = newObjX;
+        curObjectY = newObjY;
     }
 
-    float rearX = std::get<0>(rearCoord);
-    float rearY = std::get<1>(rearCoord);
+    // find the object we're currently on
+    auto obj = parent.world.getObjectAt(curObjectX, curObjectY);
 
-    // orient train
-    float angle = std::atan2(rearX - newX, rearY - newY);
-    int frame = std::round(angle * 64.0f / M_PI);
-    
-    frame = (frame + 96) % 128;
+    if(!obj)
+        return false;
 
-    object.setAnimationFrame(frame);
+    auto objData = obj->getData();
 
-    // adjust pos using the train data
-    auto &trainData = parent.world.getObjectDataStore().getTrainData();
+    if(!objData || objData->coords.empty())
+        return false; // how did we get here?
 
-    if(frame < static_cast<int>(trainData.size()))
-    {
-        auto engineData = object.getData();
-        
-        // compensate for rendering using hotspot first
-        newX = newX + engineData->hotspotX - std::get<0>(trainData[frame]);
-        newY = newY + engineData->hotspotY - std::get<1>(trainData[frame]);
-    }
-
-    object.setPixelPos(newX, newY);
+    setPosition(obj, objData, newX, newY);
     return true;
 }
 
@@ -297,7 +336,97 @@ void Train::Part::copyPosition(const Part &other)
     }
 }
 
-std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj)
+std::tuple<float, float> Train::Part::getNextCarriagePos(int &finalCoordIndex, float &finalCoordPos)
+{
+    auto obj = parent.world.getObjectAt(curObjectX, curObjectY);
+
+    if(!obj)
+        return {0.0f, 0.0f}; // uh oh
+
+    auto objData = obj->getData();
+
+    if(!objData || objData->coords.empty())
+        return {0.0f, 0.0f};
+
+    int lastUsed;
+    return lookBehind(38, obj, objData, lastUsed, finalCoordIndex, finalCoordPos);
+}
+
+// helper to position and orientation
+void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX, float newY)
+{
+    // use the coord for the front of the train
+    // try to find the back
+    int lastUsedObj;
+    int rearCoordIndex;
+    float rearCoordPos;
+    auto rearCoord = lookBehind(22, obj, objData, lastUsedObj, rearCoordIndex, rearCoordPos);
+
+    // leave objects
+    for(int i = 2; i > lastUsedObj; i--)
+    {
+        if(prevObjectX[i] != -1)
+        {
+            auto prevObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
+            if(prevObj)
+                parent.leaveObject(*prevObj);
+
+            prevObjectX[i] = prevObjectY[i] = -1;
+        }
+    }
+
+    float rearX = std::get<0>(rearCoord);
+    float rearY = std::get<1>(rearCoord);
+
+    // orient train
+    float angle = std::atan2(rearX - newX, rearY - newY);
+    int frame = std::round(angle * 64.0f / M_PI);
+    
+    frame = (frame + 96) % 128;
+
+    object.setAnimationFrame(frame);
+
+    // adjust pos using the train data
+    auto &trainData = parent.world.getObjectDataStore().getTrainData();
+
+    if(frame < static_cast<int>(trainData.size()))
+    {
+        auto engineData = object.getData();
+        
+        // compensate for rendering using hotspot first
+        newX = newX + engineData->hotspotX - std::get<0>(trainData[frame]);
+        newY = newY + engineData->hotspotY - std::get<1>(trainData[frame]);
+    }
+
+    object.setPixelPos(newX, newY);
+}
+
+void Train::Part::getObjectCoords(int index, bool &rev, bool &alt, int &x, int &y)
+{
+    if(index == -1)
+    {
+        rev = objectCoordReverse;
+        alt = objectAltCoords;
+        x = curObjectX;
+        y = curObjectY;
+        return;
+    }
+
+    if(index < 3)
+    {
+        rev = prevObjectCoordReverse[index];
+        alt = prevObjectAltCoords[index];
+        x = prevObjectX[index];
+        y = prevObjectY[index];
+        return;
+    }
+
+    // out of bounds
+    rev = alt = false;
+    x = y = 0;
+}
+
+std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj, int &finalObjectIndex, float &finalCoordPos)
 {
     auto &finalCoords = objectAltCoords ? objData->altCoords : objData->coords;
 
@@ -310,6 +439,7 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
     auto rearObj = obj;
 
     lastUsedObj = -1;
+    finalObjectIndex = -1;
 
     if(rearCoordIndex < 0 || rearCoordIndex >= static_cast<int>(finalCoords.size() - 1))
     {
@@ -340,7 +470,7 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
 
             if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
             {
-                lastUsedObj = i;
+                lastUsedObj = finalObjectIndex = i;
 
                 // keep a buffer for calculating next car pos
                 int remainingCoords = prevObjectCoordReverse[i] ? rearCoordMax - rearCoordIndex : rearCoordIndex;
@@ -384,6 +514,8 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
 
     float rearX = px0 + (px1 - px0) * frac;
     float rearY = py0 + (py1 - py0) * frac;
+
+    finalCoordPos = rearCoordIndex + frac;
 
     return {rearX, rearY};
 }
