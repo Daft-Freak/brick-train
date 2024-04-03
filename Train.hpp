@@ -34,9 +34,17 @@ private:
 
         std::tuple<float, float> getNextCarriagePos(int &finalCoordIndex, float &finalCoordPos);
 
+        // sorta-private
+        struct CoordMeta
+        {
+            bool reverse = false; // moving along the coords backwards
+            bool alternate = false; // use the other coords (points)
+            int x = 0, y = 0;
+        };
+
         void setPosition(Object *obj, const ObjectData *objData, float newX, float newY);
 
-        void getObjectCoords(int index, bool &rev, bool &alt, int &x, int &y);
+        CoordMeta *getCoordMeta(int index);
 
         std::tuple<float, float> lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj, int &finalObjectIndex, float &finalCoordPos);
 
@@ -44,13 +52,9 @@ private:
         Object object;
 
         float objectCoordPos = 0.0f;
-        bool objectCoordReverse = false; // moving along the coords backwards
-        bool objectAltCoords = false; // use the other coords (points)
-        int curObjectX = 0, curObjectY = 0;
+        CoordMeta curObjectCoord;
 
-        bool prevObjectCoordReverse[3] = {false, false, false};
-        bool prevObjectAltCoords[3] = {false, false, false};
-        int prevObjectX[3] = {0, 0, 0}, prevObjectY[3] = {0, 0, 0};
+        CoordMeta prevObjectCoord[3];
     };
 
     void enterObject(Object &obj);

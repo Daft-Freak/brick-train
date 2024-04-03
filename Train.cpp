@@ -87,7 +87,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     object.update(deltaMs);
 
     // find the object we're currently on
-    auto obj = parent.world.getObjectAt(curObjectX, curObjectY);
+    auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
 
     if(!obj)
         return false; // uh oh
@@ -98,19 +98,19 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         return false; // how did we get here?
 
     // advance
-    int dir = objectCoordReverse ? -1 : 1;
+    int dir = curObjectCoord.reverse ? -1 : 1;
 
     objectCoordPos += (deltaMs / 1000.0f) * speed * dir;
 
     int coordIndex = std::floor(objectCoordPos);
 
-    auto &coords = objectAltCoords ? objData->altCoords : objData->coords;
+    auto &coords = curObjectCoord.alternate ? objData->altCoords : objData->coords;
 
     if(coordIndex < 0 || coordIndex >= static_cast<int>(coords.size() - 1))
     {
         // moving to next object
 
-        auto finalCoord = objectCoordReverse ? coords.front() : coords.back();
+        auto finalCoord = curObjectCoord.reverse ? coords.front() : coords.back();
 
         int x, y;
         getWorldCoord(finalCoord, x, y, *obj);
@@ -131,17 +131,9 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
 
         // copy info for looking behind later
         for(int i = 2; i > 0; i--)
-        {
-            prevObjectCoordReverse[i] = prevObjectCoordReverse[i - 1];
-            prevObjectAltCoords[i] = prevObjectAltCoords[i - 1];
-            prevObjectX[i] = prevObjectX[i - 1];
-            prevObjectY[i] = prevObjectY[i - 1];
-        }
+            prevObjectCoord[i] = prevObjectCoord[i - 1];
 
-        prevObjectCoordReverse[0] = objectCoordReverse;
-        prevObjectAltCoords[0] = objectAltCoords;
-        prevObjectX[0] = curObjectX;
-        prevObjectY[0] = curObjectY;
+        prevObjectCoord[0] = curObjectCoord;
 
         // figure out which coord path we're on, and at which end
         // coords overlap so the last coord in the prev object is the second in the new one
@@ -174,17 +166,17 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
             }
         }
 
-        objectAltCoords = matchesAltCoords;
+        curObjectCoord.alternate = matchesAltCoords;
 
-        auto &newCoords = objectAltCoords ? newObjData->altCoords : newObjData->coords;
+        auto &newCoords = curObjectCoord.alternate ? newObjData->altCoords : newObjData->coords;
 
         bool newRev = newCoords[newCoords.size() - 2] == std::make_tuple(x, y);
 
-        if(!objectCoordReverse && !newRev)
+        if(!curObjectCoord.reverse && !newRev)
             objectCoordPos -= (coords.size() - 2);
-        else if(objectCoordReverse && !newRev) // backwards -> forwards
+        else if(curObjectCoord.reverse && !newRev) // backwards -> forwards
             objectCoordPos = objectCoordPos * -1.0f + 1.0f;
-        else if(!objectCoordReverse) // forwards -> backwards
+        else if(!curObjectCoord.reverse) // forwards -> backwards
         {
             objectCoordPos -= (coords.size() - 1);
             objectCoordPos = (newCoords.size() - 2) - objectCoordPos;
@@ -192,7 +184,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         else // backwards -> backwards
             objectCoordPos = (newCoords.size() - 2) + objectCoordPos;
 
-        objectCoordReverse = newRev;
+        curObjectCoord.reverse = newRev;
 
         // enter new object
         parent.enterObject(*newObj);
@@ -203,16 +195,16 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         coordIndex = std::floor(objectCoordPos);
 
         // add offset to make sure we point to a tile that has occupancy
-        curObjectX = obj->getX() + x / World::tileSize;
-        curObjectY = obj->getY() + y / World::tileSize;
+        curObjectCoord.x = obj->getX() + x / World::tileSize;
+        curObjectCoord.y = obj->getY() + y / World::tileSize;
 
-        auto newC = (objectAltCoords ? objData->altCoords : objData->coords)[coordIndex];
+        auto newC = (curObjectCoord.alternate ? objData->altCoords : objData->coords)[coordIndex];
         int nx, ny;
         getWorldCoord(newC, nx, ny, *obj);
     }
 
     // get coords again as object might have changed
-    auto &finalCoords = objectAltCoords ? objData->altCoords : objData->coords;
+    auto &finalCoords = curObjectCoord.alternate ? objData->altCoords : objData->coords;
     float frac = objectCoordPos - coordIndex;
 
     int px0, py0, px1, py1;
@@ -237,35 +229,25 @@ bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
     float newX = std::get<0>(pos);
     float newY = std::get<1>(pos);
 
-    int newObjX, newObjY;
-    bool newAlt, newRev;
-    prevPart.getObjectCoords(coordIndex, newRev, newAlt, newObjX, newObjY);
+    auto newCoordMeta = prevPart.getCoordMeta(coordIndex);
 
-    if(newObjX != curObjectX || newObjY != curObjectY)
+    if(!newCoordMeta)
+        return false;
+
+    if(newCoordMeta->x != curObjectCoord.x || newCoordMeta->y != curObjectCoord.y)
     {
         // copy info for looking behind later
         for(int i = 2; i > 0; i--)
-        {
-            prevObjectCoordReverse[i] = prevObjectCoordReverse[i - 1];
-            prevObjectAltCoords[i] = prevObjectAltCoords[i - 1];
-            prevObjectX[i] = prevObjectX[i - 1];
-            prevObjectY[i] = prevObjectY[i - 1];
-        }
+            prevObjectCoord[i] = prevObjectCoord[i - 1];
 
-        prevObjectCoordReverse[0] = objectCoordReverse;
-        prevObjectAltCoords[0] = objectAltCoords;
-        prevObjectX[0] = curObjectX;
-        prevObjectY[0] = curObjectY;
+        prevObjectCoord[0] = curObjectCoord;
 
         // set new obj
-        objectCoordReverse = newRev;
-        objectAltCoords = newAlt;
-        curObjectX = newObjX;
-        curObjectY = newObjY;
+        curObjectCoord = *newCoordMeta;
     }
 
     // find the object we're currently on
-    auto obj = parent.world.getObjectAt(curObjectX, curObjectY);
+    auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
 
     if(!obj)
         return false;
@@ -293,23 +275,23 @@ void Train::Part::placeInObject(Object &inObj)
     object.setPixelPos(px, py);
 
     objectCoordPos = 0.0f;
-    objectCoordReverse = false;
-    objectAltCoords = false;
-    curObjectX = inObj.getX();
-    curObjectY = inObj.getY() + data->bitmapSizeY - data->physSizeY;
+    curObjectCoord.reverse = false;
+    curObjectCoord.alternate = false;
+    curObjectCoord.x = inObj.getX();
+    curObjectCoord.y = inObj.getY() + data->bitmapSizeY - data->physSizeY;
 
     // flip direction so that we're always exiting a depot
     if(data->specialType == ObjectData::SpecialType::Depot && (data->specialSide == ObjectData::SpecialSide::Bottom || data->specialSide == ObjectData::SpecialSide::Left))
     {
-        objectCoordReverse = true;
+        curObjectCoord.reverse = true;
         objectCoordPos = data->coords.size() - 2;
     }
 
     // clear prev objects
     for(int i = 0; i < 3; i++)
     {
-        prevObjectX[i] = -1;
-        prevObjectY[i] = -1;
+        prevObjectCoord[i].x = -1;
+        prevObjectCoord[i].y = -1;
     }
 }
 
@@ -322,23 +304,15 @@ void Train::Part::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &
 void Train::Part::copyPosition(const Part &other)
 {
     objectCoordPos = other.objectCoordPos;
-    objectCoordReverse = other.objectCoordReverse;
-    objectAltCoords = other.objectAltCoords;
-    curObjectX = other.curObjectX;
-    curObjectY = other.curObjectY;
+    curObjectCoord = other.curObjectCoord;
 
     for(int i = 0; i < 3; i++)
-    {
-        prevObjectCoordReverse[i] = other.prevObjectCoordReverse[i];
-        prevObjectAltCoords[i] = other.prevObjectAltCoords[i];
-        prevObjectX[i] = other.prevObjectX[i];
-        prevObjectY[i] = other.prevObjectY[i];
-    }
+        prevObjectCoord[i] = other.prevObjectCoord[i];
 }
 
 std::tuple<float, float> Train::Part::getNextCarriagePos(int &finalCoordIndex, float &finalCoordPos)
 {
-    auto obj = parent.world.getObjectAt(curObjectX, curObjectY);
+    auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
 
     if(!obj)
         return {0.0f, 0.0f}; // uh oh
@@ -365,13 +339,13 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
     // leave objects
     for(int i = 2; i > lastUsedObj; i--)
     {
-        if(prevObjectX[i] != -1)
+        if(prevObjectCoord[i].x != -1)
         {
-            auto prevObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
+            auto prevObj = parent.world.getObjectAt(prevObjectCoord[i].x, prevObjectCoord[i].y);
             if(prevObj)
                 parent.leaveObject(*prevObj);
 
-            prevObjectX[i] = prevObjectY[i] = -1;
+            prevObjectCoord[i].x = prevObjectCoord[i].y = -1;
         }
     }
 
@@ -401,39 +375,26 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
     object.setPixelPos(newX, newY);
 }
 
-void Train::Part::getObjectCoords(int index, bool &rev, bool &alt, int &x, int &y)
+Train::Part::CoordMeta *Train::Part::getCoordMeta(int index)
 {
     if(index == -1)
-    {
-        rev = objectCoordReverse;
-        alt = objectAltCoords;
-        x = curObjectX;
-        y = curObjectY;
-        return;
-    }
+        return &curObjectCoord;
 
     if(index < 3)
-    {
-        rev = prevObjectCoordReverse[index];
-        alt = prevObjectAltCoords[index];
-        x = prevObjectX[index];
-        y = prevObjectY[index];
-        return;
-    }
+        return &prevObjectCoord[index];
 
     // out of bounds
-    rev = alt = false;
-    x = y = 0;
+    return nullptr;
 }
 
 std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj, int &finalObjectIndex, float &finalCoordPos)
 {
-    auto &finalCoords = objectAltCoords ? objData->altCoords : objData->coords;
+    auto &finalCoords = curObjectCoord.alternate ? objData->altCoords : objData->coords;
 
     int coordIndex = std::floor(objectCoordPos);
     float frac = objectCoordPos - coordIndex;
 
-    int rearCoordIndex = coordIndex + (objectCoordReverse ? dist : -dist);
+    int rearCoordIndex = coordIndex + (curObjectCoord.reverse ? dist : -dist);
 
     std::tuple<int, int> rearCoord0, rearCoord1;
     auto rearObj = obj;
@@ -445,11 +406,11 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
     {
         auto rearObjData = objData;
         int rearCoordMax = finalCoords.size() - 1;
-        bool prevAlt = objectAltCoords;
+        bool prevAlt = curObjectCoord.alternate;
 
         for(int i = 0; i < 3; i++)
         {
-            if(prevObjectX[i] == -1)
+            if(prevObjectCoord[i].x == -1)
                 break;
 
             // look back at prev object
@@ -459,21 +420,21 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
                 rearCoordIndex = -rearCoordIndex;
 
             // this should exist, we were just there
-            rearObj = parent.world.getObjectAt(prevObjectX[i], prevObjectY[i]);
+            rearObj = parent.world.getObjectAt(prevObjectCoord[i].x, prevObjectCoord[i].y);
             rearObjData = rearObj->getData();
 
-            auto &prevCoords = prevObjectAltCoords[i] ? rearObjData->altCoords : rearObjData->coords;
+            auto &prevCoords = prevObjectCoord[i].alternate ? rearObjData->altCoords : rearObjData->coords;
 
-            rearCoordIndex = prevObjectCoordReverse[i] ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 2);
+            rearCoordIndex = prevObjectCoord[i].reverse ? rearCoordIndex : prevCoords.size() - (rearCoordIndex + 2);
             rearCoordMax = prevCoords.size() - 1;
-            prevAlt = prevObjectAltCoords[i];
+            prevAlt = prevObjectCoord[i].alternate;
 
             if(rearCoordIndex >= 0 && rearCoordIndex < rearCoordMax)
             {
                 lastUsedObj = finalObjectIndex = i;
 
                 // keep a buffer for calculating next car pos
-                int remainingCoords = prevObjectCoordReverse[i] ? rearCoordMax - rearCoordIndex : rearCoordIndex;
+                int remainingCoords = prevObjectCoord[i].reverse ? rearCoordMax - rearCoordIndex : rearCoordIndex;
 
                 if(remainingCoords <= 16)
                     lastUsedObj++;
@@ -501,7 +462,7 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
         rearCoord1 = finalCoords[rearCoordIndex + 1];
 
         // keep buffer
-        int remainingCoords = objectCoordReverse ? finalCoords.size() - 1 - rearCoordIndex : rearCoordIndex;
+        int remainingCoords = curObjectCoord.reverse ? finalCoords.size() - 1 - rearCoordIndex : rearCoordIndex;
 
         if(remainingCoords <= 16)
             lastUsedObj++;
