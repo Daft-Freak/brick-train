@@ -59,10 +59,13 @@ void Train::placeInObject(Object &obj)
 
 void Train::enterObject(Part &part, Object &obj)
 {
+    // TODO: other end if reversing
+    bool isFirst = &part == &engine;
+
     // close crossing on train entering
     // TODO: should do before train reaches
     // TODO: make sure there are no minifigs
-    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
+    if(isFirst && obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
     {
         // animation name is inconsistent
         if(!obj.setAnimation("closed"))
@@ -72,9 +75,11 @@ void Train::enterObject(Part &part, Object &obj)
 
 void Train::leaveObject(Part &part, Object &obj)
 {
+    bool isLast = carriages.empty() || &part == &carriages.back();
+
     // re-open crossing after train leaves
     // TODO: delay?
-    if(obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
+    if(isLast && obj.getData()->specialType == ObjectData::SpecialType::LevelCrossing)
         obj.setAnimation("open");
 }
 
