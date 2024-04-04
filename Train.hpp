@@ -57,8 +57,8 @@ private:
         CoordMeta prevObjectCoord[3];
     };
 
-    void enterObject(Object &obj);
-    void leaveObject(Object &obj);
+    void enterObject(Part &part, Object &obj);
+    void leaveObject(Part &part, Object &obj);
 
     World &world;
     Part engine;

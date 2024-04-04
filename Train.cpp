@@ -54,10 +54,10 @@ void Train::placeInObject(Object &obj)
     for(auto &carriage : carriages)
         carriage.placeInObject(obj);
 
-    enterObject(obj);
+    enterObject(engine, obj);
 }
 
-void Train::enterObject(Object &obj)
+void Train::enterObject(Part &part, Object &obj)
 {
     // close crossing on train entering
     // TODO: should do before train reaches
@@ -70,7 +70,7 @@ void Train::enterObject(Object &obj)
     }
 }
 
-void Train::leaveObject(Object &obj)
+void Train::leaveObject(Part &part, Object &obj)
 {
     // re-open crossing after train leaves
     // TODO: delay?
@@ -187,7 +187,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         curObjectCoord.reverse = newRev;
 
         // enter new object
-        parent.enterObject(*newObj);
+        parent.enterObject(*this, *newObj);
 
         // use new object
         obj = newObj;
@@ -234,20 +234,8 @@ bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
     if(!newCoordMeta)
         return false;
 
-    if(newCoordMeta->x != curObjectCoord.x || newCoordMeta->y != curObjectCoord.y)
-    {
-        // copy info for looking behind later
-        for(int i = 2; i > 0; i--)
-            prevObjectCoord[i] = prevObjectCoord[i - 1];
-
-        prevObjectCoord[0] = curObjectCoord;
-
-        // set new obj
-        curObjectCoord = *newCoordMeta;
-    }
-
     // find the object we're currently on
-    auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
+    auto obj = parent.world.getObjectAt(newCoordMeta->x, newCoordMeta->y);
 
     if(!obj)
         return false;
@@ -256,6 +244,20 @@ bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
 
     if(!objData || objData->coords.empty())
         return false; // how did we get here?
+
+    if(newCoordMeta->x != curObjectCoord.x || newCoordMeta->y != curObjectCoord.y)
+    {
+        // copy info for looking behind later
+        for(int i = 2; i > 0; i--)
+            prevObjectCoord[i] = prevObjectCoord[i - 1];
+
+        prevObjectCoord[0] = curObjectCoord;
+
+        parent.enterObject(*this, *obj);
+
+        // set new obj
+        curObjectCoord = *newCoordMeta;
+    }
 
     setPosition(obj, objData, newX, newY);
     return true;
@@ -343,7 +345,7 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
         {
             auto prevObj = parent.world.getObjectAt(prevObjectCoord[i].x, prevObjectCoord[i].y);
             if(prevObj)
-                parent.leaveObject(*prevObj);
+                parent.leaveObject(*this, *prevObj);
 
             prevObjectCoord[i].x = prevObjectCoord[i].y = -1;
         }
