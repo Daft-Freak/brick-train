@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "Train.hpp"
 
 #include "World.hpp"
@@ -39,12 +41,19 @@ void Train::update(uint32_t deltaMs)
 
 void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
 {
-    engine.object.render(renderer, scrollX, scrollY, 6, zoom);
+    std::vector<Part *> parts;
+    parts.reserve(carriages.size() + 1);
 
-    // TODO: z-order
+    parts.push_back(&engine);
+
     for(auto &carriage : carriages)
-        carriage.object.render(renderer, scrollX, scrollY, 6, zoom);
+        parts.push_back(&carriage);
 
+    // z-order-ish
+    std::sort(parts.begin(), parts.end(), [](auto &a, auto &b){return a->object.getPixelY() < b->object.getPixelY();});
+
+    for(auto &part : parts)
+        part->object.render(renderer, scrollX, scrollY, 6, zoom);
 }
 
 void Train::placeInObject(Object &obj)
