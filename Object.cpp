@@ -374,6 +374,16 @@ std::tuple<int, int> Object::getFrameSize() const
     return {w / data->totalFrames, h};
 }
 
+float Object::getPixelX() const
+{
+    return pixelX;
+}
+
+float Object::getPixelY() const
+{
+    return pixelY;
+}
+
 void Object::setPixelPos(float x, float y)
 {
     pixelX = x;

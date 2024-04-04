@@ -51,6 +51,9 @@ public:
 
     std::tuple<int, int> getFrameSize() const;
 
+    float getPixelX() const;
+    float getPixelY() const;
+
     void setPixelPos(float x, float y);
 
     void setTargetPos(int tx, int ty, int vx, int vy, bool reverse = false);
