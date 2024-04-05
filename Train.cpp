@@ -135,94 +135,10 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     if(coordIndex < 0 || coordIndex >= static_cast<int>(coords.size() - 1))
     {
         // moving to next object
-
-        auto finalCoord = curObjectCoord.reverse ? coords.front() : coords.back();
-
-        int x, y;
-        getWorldCoord(finalCoord, x, y, *obj);
-    
-        auto newObj = parent.world.getObjectAt(x / World::tileSize, y / World::tileSize);
-
-        if(!newObj || newObj == obj)
+        if(enterNextObject(obj, objData))
+            coordIndex = std::floor(objectCoordPos);
+        else
             return false;
-
-        // make coord relative to new object
-        x -= newObj->getX() * World::tileSize;
-        y -= newObj->getY() * World::tileSize;
-
-        auto newObjData = newObj->getData();
-
-        if(!newObjData || newObjData->coords.empty())
-            return false; // not again...
-
-        // copy info for looking behind later
-        for(int i = 2; i > 0; i--)
-            prevObjectCoord[i] = prevObjectCoord[i - 1];
-
-        prevObjectCoord[0] = curObjectCoord;
-
-        // figure out which coord path we're on, and at which end
-        // coords overlap so the last coord in the prev object is the second in the new one
-        bool hasAlt = !newObjData->altCoords.empty();
-
-        bool matchesCoords = newObjData->coords[1] == std::make_tuple(x, y) || newObjData->coords[newObjData->coords.size() - 2] == std::make_tuple(x, y);
-        bool matchesAltCoords = false;
-
-        if(hasAlt)
-            matchesAltCoords = newObjData->altCoords[1] == std::make_tuple(x, y) || newObjData->altCoords[newObjData->altCoords.size() - 2] == std::make_tuple(x, y);
-
-        if(newObjData->specialType == ObjectData::SpecialType::Points)
-        {
-            auto fs = newObj->getCurrentFrameset();
-            bool open = fs && fs->name == "open";
-
-            // pick the right path for points
-            if(matchesCoords && matchesAltCoords)
-            {
-                if(open)
-                    matchesCoords = false;
-                else
-                    matchesAltCoords = false;
-            }
-            else
-            {
-                // may need to switch
-                if(open != matchesAltCoords)
-                    newObj->setAnimation(open ? "closed" : "open");
-            }
-        }
-
-        curObjectCoord.alternate = matchesAltCoords;
-
-        auto &newCoords = curObjectCoord.alternate ? newObjData->altCoords : newObjData->coords;
-
-        bool newRev = newCoords[newCoords.size() - 2] == std::make_tuple(x, y);
-
-        if(!curObjectCoord.reverse && !newRev)
-            objectCoordPos -= (coords.size() - 2);
-        else if(curObjectCoord.reverse && !newRev) // backwards -> forwards
-            objectCoordPos = objectCoordPos * -1.0f + 1.0f;
-        else if(!curObjectCoord.reverse) // forwards -> backwards
-        {
-            objectCoordPos -= (coords.size() - 1);
-            objectCoordPos = (newCoords.size() - 2) - objectCoordPos;
-        }
-        else // backwards -> backwards
-            objectCoordPos = (newCoords.size() - 2) + objectCoordPos;
-
-        curObjectCoord.reverse = newRev;
-
-        // enter new object
-        parent.enterObject(*this, *newObj);
-
-        // use new object
-        obj = newObj;
-        objData = newObjData;
-        coordIndex = std::floor(objectCoordPos);
-
-        // add offset to make sure we point to a tile that has occupancy
-        curObjectCoord.x = obj->getX() + x / World::tileSize;
-        curObjectCoord.y = obj->getY() + y / World::tileSize;
     }
 
     // get coords again as object might have changed
@@ -415,6 +331,100 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
     object.setPixelPos(newX, newY);
 
     validPos = rearCoordIndex != -1 || std::abs(rearCoordPos - objectCoordPos) >= (rearWheelDist - 1);
+}
+
+bool Train::Part::enterNextObject(Object *&obj, const ObjectData *&objData)
+{
+    auto &coords = curObjectCoord.alternate ? objData->altCoords : objData->coords;
+
+    auto finalCoord = curObjectCoord.reverse ? coords.front() : coords.back();
+
+    int x, y;
+    getWorldCoord(finalCoord, x, y, *obj);
+
+    auto newObj = parent.world.getObjectAt(x / World::tileSize, y / World::tileSize);
+
+    if(!newObj || newObj == obj)
+        return false;
+
+    // make coord relative to new object
+    x -= newObj->getX() * World::tileSize;
+    y -= newObj->getY() * World::tileSize;
+
+    auto newObjData = newObj->getData();
+
+    if(!newObjData || newObjData->coords.empty())
+        return false; // not again...
+
+    // copy info for looking behind later
+    for(int i = 2; i > 0; i--)
+        prevObjectCoord[i] = prevObjectCoord[i - 1];
+
+    prevObjectCoord[0] = curObjectCoord;
+
+    // figure out which coord path we're on, and at which end
+    // coords overlap so the last coord in the prev object is the second in the new one
+    bool hasAlt = !newObjData->altCoords.empty();
+
+    bool matchesCoords = newObjData->coords[1] == std::make_tuple(x, y) || newObjData->coords[newObjData->coords.size() - 2] == std::make_tuple(x, y);
+    bool matchesAltCoords = false;
+
+    if(hasAlt)
+        matchesAltCoords = newObjData->altCoords[1] == std::make_tuple(x, y) || newObjData->altCoords[newObjData->altCoords.size() - 2] == std::make_tuple(x, y);
+
+    if(newObjData->specialType == ObjectData::SpecialType::Points)
+    {
+        auto fs = newObj->getCurrentFrameset();
+        bool open = fs && fs->name == "open";
+
+        // pick the right path for points
+        if(matchesCoords && matchesAltCoords)
+        {
+            if(open)
+                matchesCoords = false;
+            else
+                matchesAltCoords = false;
+        }
+        else
+        {
+            // may need to switch
+            if(open != matchesAltCoords)
+                newObj->setAnimation(open ? "closed" : "open");
+        }
+    }
+
+    curObjectCoord.alternate = matchesAltCoords;
+
+    auto &newCoords = curObjectCoord.alternate ? newObjData->altCoords : newObjData->coords;
+
+    bool newRev = newCoords[newCoords.size() - 2] == std::make_tuple(x, y);
+
+    if(!curObjectCoord.reverse && !newRev)
+        objectCoordPos -= (coords.size() - 2);
+    else if(curObjectCoord.reverse && !newRev) // backwards -> forwards
+        objectCoordPos = objectCoordPos * -1.0f + 1.0f;
+    else if(!curObjectCoord.reverse) // forwards -> backwards
+    {
+        objectCoordPos -= (coords.size() - 1);
+        objectCoordPos = (newCoords.size() - 2) - objectCoordPos;
+    }
+    else // backwards -> backwards
+        objectCoordPos = (newCoords.size() - 2) + objectCoordPos;
+
+    curObjectCoord.reverse = newRev;
+
+    // enter new object
+    parent.enterObject(*this, *newObj);
+
+    // use new object
+    obj = newObj;
+    objData = newObjData;
+
+    // add offset to make sure we point to a tile that has occupancy
+    curObjectCoord.x = obj->getX() + x / World::tileSize;
+    curObjectCoord.y = obj->getY() + y / World::tileSize;
+
+    return true;
 }
 
 Train::Part::CoordMeta *Train::Part::getCoordMeta(int index)
