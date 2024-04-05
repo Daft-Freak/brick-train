@@ -28,7 +28,7 @@ void Train::update(uint32_t deltaMs)
         return;
 
     bool first = true;
-    
+
     for(auto it = carriages.begin(); it != carriages.end(); ++it)
     {
         if(!it->update(deltaMs, first ? engine : *(it - 1)))
@@ -47,7 +47,10 @@ void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
     parts.push_back(&engine);
 
     for(auto &carriage : carriages)
-        parts.push_back(&carriage);
+    {
+        if(carriage.validPos)
+            parts.push_back(&carriage);
+    }
 
     // z-order-ish
     std::sort(parts.begin(), parts.end(), [](auto &a, auto &b){return a->object.getPixelY() < b->object.getPixelY();});
@@ -104,12 +107,18 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
 
     if(!obj)
+    {
+        validPos = false;
         return false; // uh oh
+    }
 
     auto objData = obj->getData();
 
     if(!objData || objData->coords.empty())
+    {
+        validPos = false;
         return false; // how did we get here?
+    }
 
     // advance
     int dir = curObjectCoord.reverse ? -1 : 1;
@@ -229,7 +238,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     float newY = py0 + (py1 - py0) * frac;
 
     setPosition(obj, objData, newX, newY);
-    return true;
+    return validPos;
 }
 
 bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
@@ -246,13 +255,19 @@ bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
     auto newCoordMeta = prevPart.getCoordMeta(coordIndex);
 
     if(!newCoordMeta)
+    {
+        validPos = false;
         return false;
+    }
 
     // find the object we're currently on
     auto obj = parent.world.getObjectAt(newCoordMeta->x, newCoordMeta->y);
 
     if(!obj)
+    {
+        validPos = false;
         return false;
+    }
 
     auto objData = obj->getData();
 
@@ -274,7 +289,7 @@ bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
     }
 
     setPosition(obj, objData, newX, newY);
-    return true;
+    return validPos;
 }
 
 void Train::Part::placeInObject(Object &inObj)
@@ -389,6 +404,8 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
     }
 
     object.setPixelPos(newX, newY);
+
+    validPos = rearCoordIndex != -1 || std::abs(rearCoordPos - objectCoordPos) >= 21;
 }
 
 Train::Part::CoordMeta *Train::Part::getCoordMeta(int index)

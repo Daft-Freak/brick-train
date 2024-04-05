@@ -51,6 +51,8 @@ private:
         Train &parent;
         Object object;
 
+        bool validPos = false;
+
         float objectCoordPos = 0.0f;
         CoordMeta curObjectCoord;
 
