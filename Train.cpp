@@ -223,10 +223,6 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         // add offset to make sure we point to a tile that has occupancy
         curObjectCoord.x = obj->getX() + x / World::tileSize;
         curObjectCoord.y = obj->getY() + y / World::tileSize;
-
-        auto newC = (curObjectCoord.alternate ? objData->altCoords : objData->coords)[coordIndex];
-        int nx, ny;
-        getWorldCoord(newC, nx, ny, *obj);
     }
 
     // get coords again as object might have changed
