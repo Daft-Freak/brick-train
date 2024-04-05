@@ -226,8 +226,9 @@ void Train::Part::placeInObject(Object &inObj)
     curObjectCoord.x = inObj.getX();
     curObjectCoord.y = inObj.getY() + data->bitmapSizeY - data->physSizeY;
 
-    // flip direction so that we're always exiting a depot
-    if(data->specialType == ObjectData::SpecialType::Depot && (data->specialSide == ObjectData::SpecialSide::Bottom || data->specialSide == ObjectData::SpecialSide::Left))
+    // flip direction so that we're always exiting a depot/tunnel
+    if((data->specialType == ObjectData::SpecialType::Depot || data->specialType == ObjectData::SpecialType::Tunnel) &&
+       (data->specialSide == ObjectData::SpecialSide::Bottom || data->specialSide == ObjectData::SpecialSide::Left))
     {
         curObjectCoord.reverse = true;
         objectCoordPos = data->coords.size() - 2;
