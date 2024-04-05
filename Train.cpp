@@ -4,6 +4,9 @@
 
 #include "World.hpp"
 
+static const int rearWheelDist = 22;
+static const int nextCarriageDist = 38;
+
 Train::Train(World &world, uint16_t engineId, std::string name) : world(world), engine(*this, std::move(world.addObject(engineId, 0, 0, name)))
 {
     speed = 35; // TODO: min/max speed from .dat
@@ -354,7 +357,7 @@ std::tuple<float, float> Train::Part::getNextCarriagePos(int &finalCoordIndex, f
         return {0.0f, 0.0f};
 
     int lastUsed;
-    return lookBehind(38, obj, objData, lastUsed, finalCoordIndex, finalCoordPos);
+    return lookBehind(nextCarriageDist, obj, objData, lastUsed, finalCoordIndex, finalCoordPos);
 }
 
 // helper to position and orientation
@@ -365,7 +368,7 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
     int lastUsedObj;
     int rearCoordIndex;
     float rearCoordPos;
-    auto rearCoord = lookBehind(22, obj, objData, lastUsedObj, rearCoordIndex, rearCoordPos);
+    auto rearCoord = lookBehind(rearWheelDist, obj, objData, lastUsedObj, rearCoordIndex, rearCoordPos);
 
     // leave objects
     for(int i = 2; i > lastUsedObj; i--)
@@ -405,7 +408,7 @@ void Train::Part::setPosition(Object *obj, const ObjectData *objData, float newX
 
     object.setPixelPos(newX, newY);
 
-    validPos = rearCoordIndex != -1 || std::abs(rearCoordPos - objectCoordPos) >= 21;
+    validPos = rearCoordIndex != -1 || std::abs(rearCoordPos - objectCoordPos) >= (rearWheelDist - 1);
 }
 
 Train::Part::CoordMeta *Train::Part::getCoordMeta(int index)
@@ -469,7 +472,7 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
                 // keep a buffer for calculating next car pos
                 int remainingCoords = prevObjectCoord[i].reverse ? rearCoordMax - rearCoordIndex : rearCoordIndex;
 
-                if(remainingCoords <= 16)
+                if(remainingCoords <= (nextCarriageDist - rearWheelDist))
                     lastUsedObj++;
 
                 rearCoord0 = prevCoords[rearCoordIndex];
@@ -497,7 +500,7 @@ std::tuple<float, float> Train::Part::lookBehind(int dist, const Object *obj, co
         // keep buffer
         int remainingCoords = curObjectCoord.reverse ? finalCoords.size() - 1 - rearCoordIndex : rearCoordIndex;
 
-        if(remainingCoords <= 16)
+        if(remainingCoords <= (nextCarriageDist - rearWheelDist))
             lastUsedObj++;
     }
 
