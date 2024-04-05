@@ -34,7 +34,11 @@ private:
 
         std::tuple<float, float> getNextCarriagePos(int &finalCoordIndex, float &finalCoordPos);
 
-        // sorta-private
+        Object &getObject();
+
+        bool getValidPos() const;
+
+    private:
         struct CoordMeta
         {
             bool reverse = false; // moving along the coords backwards

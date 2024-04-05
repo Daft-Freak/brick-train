@@ -12,13 +12,13 @@ Train::Train(World &world, uint16_t engineId, std::string name) : world(world), 
     speed = 35; // TODO: min/max speed from .dat
 }
 
-Train::Train(Train &&other) : world(other.world), engine(*this, std::move(other.engine.object))
+Train::Train(Train &&other) : world(other.world), engine(*this, std::move(other.engine.getObject()))
 {
     speed = other.speed;
     
     for(auto &carriage : other.carriages)
     {
-        carriages.emplace_back(*this, std::move(carriage.object));
+        carriages.emplace_back(*this, std::move(carriage.getObject()));
         carriages.back().copyPosition(carriage);
     }
 
@@ -51,15 +51,15 @@ void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
 
     for(auto &carriage : carriages)
     {
-        if(carriage.validPos)
+        if(carriage.getValidPos())
             parts.push_back(&carriage);
     }
 
     // z-order-ish
-    std::sort(parts.begin(), parts.end(), [](auto &a, auto &b){return a->object.getPixelY() < b->object.getPixelY();});
+    std::sort(parts.begin(), parts.end(), [](auto &a, auto &b){return a->getObject().getPixelY() < b->getObject().getPixelY();});
 
     for(auto &part : parts)
-        part->object.render(renderer, scrollX, scrollY, 6, zoom);
+        part->getObject().render(renderer, scrollX, scrollY, 6, zoom);
 }
 
 void Train::placeInObject(Object &obj)
@@ -354,6 +354,16 @@ std::tuple<float, float> Train::Part::getNextCarriagePos(int &finalCoordIndex, f
 
     int lastUsed;
     return lookBehind(nextCarriageDist, obj, objData, lastUsed, finalCoordIndex, finalCoordPos);
+}
+
+Object &Train::Part::getObject()
+{
+    return object;
+}
+
+bool Train::Part::getValidPos() const
+{
+    return validPos;
 }
 
 // helper to position and orientation
