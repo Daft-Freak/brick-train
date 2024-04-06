@@ -48,6 +48,8 @@ private:
 
         void setPosition(Object *obj, const ObjectData *objData, float newX, float newY);
 
+        bool enterNextObject(Object *&obj, const ObjectData *&objData);
+
         CoordMeta *getCoordMeta(int index);
 
         std::tuple<float, float> lookBehind(int dist, const Object *obj, const ObjectData *objData, int &lastUsedObj, int &finalObjectIndex, float &finalCoordPos);
