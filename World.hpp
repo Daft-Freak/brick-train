@@ -33,6 +33,8 @@ public:
     Object &addObject(uint16_t id, uint16_t x, uint16_t y, std::string name);
     Object *getObjectAt(unsigned int x, unsigned int y);
 
+    std::vector<Object *> getTunnels(bool shuffled = false);
+
     static const int tileSize = 16;
 
 private:

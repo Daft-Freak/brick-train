@@ -397,6 +397,26 @@ Object *World::getObjectAt(unsigned int x, unsigned int y)
     return nullptr;
 }
 
+std::vector<Object *> World::getTunnels(bool shuffled)
+{
+    std::vector<Object *> ret;
+
+    for(auto &object : objects)
+    {
+        auto objectData = object.getData();
+        if(!objectData)
+            continue;
+ 
+        if(objectData->specialType == ObjectData::SpecialType::Tunnel)
+            ret.push_back(&object);
+    }
+
+    if(shuffled)
+        std::shuffle(ret.begin(), ret.end(), randomGen);
+
+    return ret;
+}
+
 // load the "global" easter eggs from EE.INI
 void World::loadEasterEggs()
 {
