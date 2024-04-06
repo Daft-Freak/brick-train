@@ -37,6 +37,9 @@ private:
         Object &getObject();
 
         bool getValidPos() const;
+        bool getOffscreen() const;
+
+        bool isInTunnel() const;
 
     private:
         struct CoordMeta
@@ -58,6 +61,7 @@ private:
         Object object;
 
         bool validPos = false;
+        bool offscreen = false; // technically more like "has left the world"
 
         float objectCoordPos = 0.0f;
         CoordMeta curObjectCoord;

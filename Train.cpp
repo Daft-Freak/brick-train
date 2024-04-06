@@ -27,19 +27,33 @@ Train::Train(Train &&other) : world(other.world), engine(*this, std::move(other.
 
 void Train::update(uint32_t deltaMs)
 {
-    if(!engine.update(deltaMs, speed))
-        return;
+    // drive train from first part that hasn't already left the world
+    // (tunnels)
+    auto part = &engine;
+    auto it = carriages.begin();
 
-    bool first = true;
+    while(part->getOffscreen() && it != carriages.end())
+        part = &(*it++);
 
-    for(auto it = carriages.begin(); it != carriages.end(); ++it)
+    if(!part->update(deltaMs, speed))
     {
-        if(!it->update(deltaMs, first ? engine : *(it - 1)))
-            break;
-
-        first = false;
+        if(part->isInTunnel() && it == carriages.end())
+        {
+            // fully in tunnel, re-appear in another tunnel
+            // as we're in a tunnel, one should exist...
+            placeInObject(*world.getTunnels(true)[0]);
+        }
+        return;
     }
 
+    // pull remaining carriages
+    for(; it != carriages.end(); ++it)
+    {
+        if(!it->update(deltaMs, *part))
+            break;
+
+        part = &(*it);
+    }
 }
 
 void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
@@ -137,6 +151,20 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
         // moving to next object
         if(enterNextObject(obj, objData))
             coordIndex = std::floor(objectCoordPos);
+        else if(objData->specialType == ObjectData::SpecialType::Tunnel)
+        {
+            // reached the end of a tunnel, keep going until offscreen
+            int coordOut = coordIndex < 0 ? -coordIndex : coordIndex - (coords.size() - 2);
+
+            if(coordOut > rearWheelDist)
+            {
+                offscreen = true;
+                return false;
+            }
+
+            // clamp coord so we extrapolate later
+            coordIndex = coordIndex < 0 ? 0 : coords.size() - 2;
+        }
         else
             return false;
     }
@@ -240,6 +268,9 @@ void Train::Part::placeInObject(Object &inObj)
         prevObjectCoord[i].x = -1;
         prevObjectCoord[i].y = -1;
     }
+
+    offscreen = false;
+    validPos = false; // will update on first update
 }
 
 void Train::Part::getWorldCoord(const std::tuple<int, int> &coord, int &x, int &y, const Object &obj)
@@ -281,6 +312,26 @@ Object &Train::Part::getObject()
 bool Train::Part::getValidPos() const
 {
     return validPos;
+}
+
+bool Train::Part::getOffscreen() const
+{
+    return offscreen;
+}
+
+bool Train::Part::isInTunnel() const
+{
+    if(!offscreen)
+        return false;
+    
+    auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
+
+    if(!obj)
+        return false;
+
+    auto objData = obj->getData();
+
+    return objData && objData->specialType == ObjectData::SpecialType::Tunnel;
 }
 
 // helper to position and orientation
