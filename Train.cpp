@@ -170,6 +170,12 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
             // clamp coord so we extrapolate later
             coordIndex = coordIndex < 0 ? 0 : coords.size() - 2;
         }
+        else if(objData->specialType == ObjectData::SpecialType::Depot)
+        {
+            // in depot, stop and move the next part in
+            offscreen = true;
+            return false;
+        }
         else
             return false;
     }
