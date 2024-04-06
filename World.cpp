@@ -187,7 +187,12 @@ bool World::loadSave(const std::filesystem::path &path)
 
         Train train(*this, ids[0], name);
 
-        // TODO: carriages
+        // carriages
+        for(int j = 1; j < 4; j++)
+        {
+            if(ids[j])
+                train.addCarriage(ids[j]);
+        }
 
         // assign to empty depot
         // TODO: if not enough depots, trains need to leave the depot immediately

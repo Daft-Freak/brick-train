@@ -76,6 +76,11 @@ void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
         part->getObject().render(renderer, scrollX, scrollY, 6, zoom);
 }
 
+void Train::addCarriage(uint16_t id)
+{
+    carriages.emplace_back(*this, std::move(world.addObject(id, 0, 0, "")));
+}
+
 void Train::placeInObject(Object &obj)
 {
     engine.placeInObject(obj);

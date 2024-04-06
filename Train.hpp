@@ -15,6 +15,8 @@ public:
 
     void render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom);
 
+    void addCarriage(uint16_t id);
+
     void placeInObject(Object &obj);
 
 private:
