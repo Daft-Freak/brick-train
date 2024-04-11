@@ -70,13 +70,26 @@ int main(int argc, char *argv[])
     // SDL init
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
     {
-        std::cerr << "Failed to init SDL!\n";
+        std::cerr << "Failed to init SDL:" << SDL_GetError() << "\n";
         return 1;
     }
 
     auto window = SDL_CreateWindow("Brick Train", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_ALLOW_HIGHDPI);
 
+    if(!window)
+    {
+        std::cerr << "Failed to create window:" << SDL_GetError() << "\n";
+        return 1;
+    }
+
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+    if(!renderer)
+    {
+        SDL_DestroyWindow(window);
+        std::cerr << "Failed to create renderer:" << SDL_GetError() << "\n";
+        return 1;
+    }
 
     texLoader.setRenderer(renderer);
 
