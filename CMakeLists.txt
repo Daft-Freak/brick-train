@@ -26,8 +26,9 @@ add_executable(BrickTrain
 )
 
 find_package(SDL2 REQUIRED)
+find_package(SDL2_mixer REQUIRED)
 
-target_link_libraries(BrickTrain SDL2::SDL2)
+target_link_libraries(BrickTrain SDL2::SDL2 SDL2_mixer::SDL2_mixer)
 
 if(SDL2_SDL2main_FOUND)
     target_link_libraries(BrickTrain SDL2::SDL2main)

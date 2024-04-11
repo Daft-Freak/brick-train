@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <SDL.h>
+#include <SDL_mixer.h>
 
 #include "FileLoader.hpp"
 #include "ObjectDataStore.hpp"
@@ -91,6 +92,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // audio setup
+    if(Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 2048) != 0)
+    {
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        std::cerr << "Failed to open audio!\n";
+        return 1;
+    }
+
     texLoader.setRenderer(renderer);
 
     World testWorld(fileLoader, texLoader, objStore);
@@ -118,6 +128,8 @@ int main(int argc, char *argv[])
 
         SDL_RenderPresent(renderer);
     }
+
+    Mix_CloseAudio();
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
