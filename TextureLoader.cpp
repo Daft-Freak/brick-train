@@ -45,7 +45,7 @@ static SDL_RWops *rwOpsFromStream(const std::unique_ptr<std::istream> &stream)
     {
         auto stream = reinterpret_cast<std::istream *>(context->hidden.unknown.data1);
 
-        return stream->read(reinterpret_cast<char *>(ptr), size * maxnum).gcount();
+        return stream->read(reinterpret_cast<char *>(ptr), size * maxnum).gcount() / size;
     };
 
     rwops->write = [](SDL_RWops *context, const void *ptr, size_t size, size_t maxnum) -> size_t
