@@ -19,6 +19,7 @@ add_executable(BrickTrain
   ObjectData.cpp
   ObjectDataStore.cpp
   ResourceFile.cpp
+  RWOps.cpp
   StringTable.cpp
   TextureLoader.cpp
   Train.cpp
