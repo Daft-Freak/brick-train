@@ -11,12 +11,22 @@ class SoundMixer final
 public:
     SoundMixer(FileLoader &fileLoader);
 
-    int playSound(const std::shared_ptr<Mix_Chunk> &sound, int priority);
+    uint32_t playSound(const std::shared_ptr<Mix_Chunk> &sound, int priority);
+
+    bool isSoundPlaying(uint32_t id) const;
 
     SoundLoader &getLoader();
 
 private:
     SoundLoader loader;
 
-    std::map<int, std::shared_ptr<Mix_Chunk>> playingSounds;
+    struct SoundInfo
+    {
+        std::shared_ptr<Mix_Chunk> chunk;
+        uint32_t id;
+    };
+
+    uint32_t nextSoundId = 0;
+
+    std::map<int, SoundInfo> playingSounds;
 };
