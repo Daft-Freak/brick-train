@@ -345,9 +345,8 @@ bool Object::setAnimation(std::string_view name)
     {
         if(fs.name == name)
         {
-            currentAnimation = index;
-            currentAnimationFrame = fs.startFrame;
-            animationTimer = getFrameDelay();
+            nextAnimation = index;
+            animationTimer = 0;
             return true;
         }
 
