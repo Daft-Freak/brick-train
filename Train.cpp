@@ -149,17 +149,20 @@ bool Train::Part::update(uint32_t deltaMs, int speed, SoundMixer &sound)
 
     int coordIndex = std::floor(objectCoordPos);
 
-    auto &coords = curObjectCoord.alternate ? objData->altCoords : objData->coords;
+    size_t coordsSize = (curObjectCoord.alternate ? objData->altCoords : objData->coords).size();
 
-    if(coordIndex < 0 || coordIndex >= static_cast<int>(coords.size() - 1))
+    while(coordIndex < 0 || coordIndex >= static_cast<int>(coordsSize - 1))
     {
         // moving to next object
         if(enterNextObject(obj, objData))
+        {
             coordIndex = std::floor(objectCoordPos);
+            coordsSize = (curObjectCoord.alternate ? objData->altCoords : objData->coords).size();
+        }
         else if(objData->specialType == ObjectData::SpecialType::Tunnel)
         {
             // reached the end of a tunnel, keep going until offscreen
-            int coordOut = coordIndex < 0 ? -coordIndex : coordIndex - (coords.size() - 2);
+            int coordOut = coordIndex < 0 ? -coordIndex : coordIndex - (coordsSize - 2);
 
             if(coordOut > rearWheelDist)
             {
@@ -168,7 +171,7 @@ bool Train::Part::update(uint32_t deltaMs, int speed, SoundMixer &sound)
             }
 
             // clamp coord so we extrapolate later
-            coordIndex = coordIndex < 0 ? 0 : coords.size() - 2;
+            coordIndex = coordIndex < 0 ? 0 : coordsSize - 2;
         }
         else if(objData->specialType == ObjectData::SpecialType::Depot)
         {
