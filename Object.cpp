@@ -44,6 +44,18 @@ void Object::update(uint32_t deltaMs)
     }
 
     // TODO: sounds
+
+    if(!animationTimer && nextAnimation != -1)
+    {
+        // start next animation if no current one
+        currentAnimation = nextAnimation;
+        animationTimer += getFrameDelay();
+
+        auto &newFrameset = data->framesets[currentAnimation];
+        currentAnimationFrame = newFrameset.startFrame;
+        nextAnimation = -1;
+    }
+
     if(currentAnimation != -1 && animationTimer)
     {
         animationTimer -= deltaMs;
@@ -62,7 +74,8 @@ void Object::update(uint32_t deltaMs)
             {
                 // delayed frameset change
                 currentAnimation = nextAnimation;
-                currentAnimationFrame = data->framesets[currentAnimation].startFrame;
+                auto &newFrameset = data->framesets[currentAnimation];
+                currentAnimationFrame = newFrameset.startFrame;
                 nextAnimation = -1;
             }
             else
@@ -314,12 +327,8 @@ bool Object::setAnimation(int index)
     if(index < 0 || !data || index > data->numFramesets)
         return false;
 
-    currentAnimation = index;
-
-    auto &frameset = data->framesets[currentAnimation];
-    currentAnimationFrame = frameset.startFrame;
-
-    animationTimer = getFrameDelay();
+    nextAnimation = index;
+    animationTimer = 0;
 
     return true;
 }
