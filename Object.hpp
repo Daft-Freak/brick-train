@@ -9,6 +9,8 @@
 
 #include "ObjectData.hpp"
 
+class SoundMixer;
+
 struct Minifig
 {
     uint32_t id;
@@ -20,7 +22,7 @@ class Object
 public:
     Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data);
 
-    void update(uint32_t deltaMs);
+    void update(uint32_t deltaMs, SoundMixer &soundMix);
 
     void render(SDL_Renderer *renderer, int scrollX, int scrollY, int z, float zoom);
     void renderDebug(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom);

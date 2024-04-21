@@ -215,13 +215,13 @@ bool World::loadSave(const std::filesystem::path &path)
     return true;
 }
 
-void World::update(uint32_t deltaMs)
+void World::update(uint32_t deltaMs, SoundMixer &sound)
 {
     for(auto &object : objects)
-        object.update(deltaMs);
+        object.update(deltaMs, sound);
 
     for(auto &train : trains)
-        train.update(deltaMs);
+        train.update(deltaMs, sound);
 
     updateTimeEasterEggs(deltaMs);
 

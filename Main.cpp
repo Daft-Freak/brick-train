@@ -6,6 +6,7 @@
 
 #include "FileLoader.hpp"
 #include "ObjectDataStore.hpp"
+#include "SoundMixer.hpp"
 #include "TextureLoader.hpp"
 #include "World.hpp"
 
@@ -101,6 +102,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    SoundMixer mixer(fileLoader);
+
     texLoader.setRenderer(renderer);
 
     World testWorld(fileLoader, texLoader, objStore);
@@ -119,7 +122,7 @@ int main(int argc, char *argv[])
         auto delta = now - lastTime;
         lastTime = now;
 
-        testWorld.update(delta);
+        testWorld.update(delta, mixer);
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);

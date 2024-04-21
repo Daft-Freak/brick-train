@@ -20,7 +20,7 @@ public:
 
     bool loadSave(const std::filesystem::path &path);
 
-    void update(uint32_t deltaMs);
+    void update(uint32_t deltaMs, SoundMixer &sound);
 
     void handleEvent(SDL_Event &event);
 

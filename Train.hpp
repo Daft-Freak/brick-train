@@ -11,7 +11,7 @@ public:
     Train(Train &) = delete;
     Train(Train &&other);
 
-    void update(uint32_t deltaMs);
+    void update(uint32_t deltaMs, SoundMixer &sound);
 
     void render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom);
 
@@ -25,8 +25,8 @@ private:
     {
         Part(Train &parent, Object &&object);
 
-        bool update(uint32_t deltaMs, int speed);
-        bool update(uint32_t deltaMs, Part &prevPart);
+        bool update(uint32_t deltaMs, int speed, SoundMixer &sound);
+        bool update(uint32_t deltaMs, Part &prevPart, SoundMixer &sound);
 
         void placeInObject(Object &obj);
     

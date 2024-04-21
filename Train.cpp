@@ -25,7 +25,7 @@ Train::Train(Train &&other) : world(other.world), engine(*this, std::move(other.
     engine.copyPosition(other.engine);
 }
 
-void Train::update(uint32_t deltaMs)
+void Train::update(uint32_t deltaMs, SoundMixer &sound)
 {
     // drive train from first part that hasn't already left the world
     // (tunnels)
@@ -35,7 +35,7 @@ void Train::update(uint32_t deltaMs)
     while(part->getOffscreen() && it != carriages.end())
         part = &(*it++);
 
-    if(!part->update(deltaMs, speed))
+    if(!part->update(deltaMs, speed, sound))
     {
         if(part->isInTunnel() && it == carriages.end())
         {
@@ -49,7 +49,7 @@ void Train::update(uint32_t deltaMs)
     // pull remaining carriages
     for(; it != carriages.end(); ++it)
     {
-        if(!it->update(deltaMs, *part))
+        if(!it->update(deltaMs, *part, sound))
             break;
 
         part = &(*it);
@@ -121,9 +121,9 @@ Train::Part::Part(Train &parent, Object &&object) : parent(parent), object(std::
 {
 }
 
-bool Train::Part::update(uint32_t deltaMs, int speed)
+bool Train::Part::update(uint32_t deltaMs, int speed, SoundMixer &sound)
 {
-    object.update(deltaMs);
+    object.update(deltaMs, sound);
 
     // find the object we're currently on
     auto obj = parent.world.getObjectAt(curObjectCoord.x, curObjectCoord.y);
@@ -195,9 +195,9 @@ bool Train::Part::update(uint32_t deltaMs, int speed)
     return validPos;
 }
 
-bool Train::Part::update(uint32_t deltaMs, Part &prevPart)
+bool Train::Part::update(uint32_t deltaMs, Part &prevPart, SoundMixer &sound)
 {
-    object.update(deltaMs);
+    object.update(deltaMs, sound);
 
     // get position from prev part
     int coordIndex;

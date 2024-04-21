@@ -1,5 +1,6 @@
 #include "Object.hpp"
 
+#include "SoundMixer.hpp"
 #include "World.hpp"
 
 Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::shared_ptr<SDL_Texture> texture, const ObjectData *data) : id(id), x(x), y(y), name(name), texture(texture), data(data)
@@ -8,7 +9,7 @@ Object::Object(uint16_t id, uint16_t x, uint16_t y, std::string name, std::share
     setDefaultAnimation();
 }
 
-void Object::update(uint32_t deltaMs)
+void Object::update(uint32_t deltaMs, SoundMixer &soundMix)
 {
     if(!data)
         return;
