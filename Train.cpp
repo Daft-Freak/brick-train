@@ -7,7 +7,7 @@
 static const int rearWheelDist = 22;
 static const int nextCarriageDist = 38;
 
-Train::Train(World &world, uint16_t engineId, std::string name) : world(world), engine(*this, std::move(world.addObject(engineId, 0, 0, name)))
+Train::Train(World &world, uint16_t engineId, std::string name) : world(world), engine(*this, std::move(world.createObject(engineId, 0, 0, name)))
 {
     speed = 35; // TODO: min/max speed from .dat
 }
@@ -78,7 +78,7 @@ void Train::render(SDL_Renderer *renderer, int scrollX, int scrollY, float zoom)
 
 void Train::addCarriage(uint16_t id)
 {
-    carriages.emplace_back(*this, std::move(world.addObject(id, 0, 0, "")));
+    carriages.emplace_back(*this, std::move(world.createObject(id, 0, 0, "")));
 }
 
 void Train::placeInObject(Object &obj)
