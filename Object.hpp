@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL.h>
+#include <SDL_mixer.h>
 
 #include <cstdint>
 #include <memory>
@@ -61,6 +62,8 @@ public:
     void setTargetPos(int tx, int ty, int vx, int vy, bool reverse = false);
 
 private:
+    void startAnimation(int newId, SoundMixer &soundMix);
+
     uint16_t id;
     int x, y;
     std::string name;
@@ -73,6 +76,10 @@ private:
     int currentAnimation = -1, nextAnimation = -1;
     int currentAnimationFrame = 0;
     int animationTimer = 0;
+
+    int soundReplayTimer = 0;
+    uint32_t playingSoundId = ~0u;
+    std::shared_ptr<Mix_Chunk> lastSound;
 
     // "screen" aligned objects
     float pixelX = 0.0f, pixelY = 0.0f;

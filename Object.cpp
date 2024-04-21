@@ -44,16 +44,16 @@ void Object::update(uint32_t deltaMs, SoundMixer &soundMix)
         }
     }
 
-    // TODO: sounds
+    // update sound timer
+    if(soundReplayTimer > 0)
+        soundReplayTimer -= deltaMs;
 
+    // update animations
     if(!animationTimer && nextAnimation != -1)
     {
         // start next animation if no current one
-        currentAnimation = nextAnimation;
+        startAnimation(nextAnimation, soundMix);
         animationTimer += getFrameDelay();
-
-        auto &newFrameset = data->framesets[currentAnimation];
-        currentAnimationFrame = newFrameset.startFrame;
         nextAnimation = -1;
     }
 
@@ -74,9 +74,7 @@ void Object::update(uint32_t deltaMs, SoundMixer &soundMix)
             if(nextAnimation != -1)
             {
                 // delayed frameset change
-                currentAnimation = nextAnimation;
-                auto &newFrameset = data->framesets[currentAnimation];
-                currentAnimationFrame = newFrameset.startFrame;
+                startAnimation(nextAnimation, soundMix);
                 nextAnimation = -1;
             }
             else
@@ -408,4 +406,23 @@ void Object::setTargetPos(int tx, int ty, int vx, int vy, bool reverse)
     velY = vy;
     
     this->reverse = reverse;
+}
+
+void Object::startAnimation(int newId, SoundMixer &soundMix)
+{
+    currentAnimation = newId;
+    auto &newFrameset = data->framesets[currentAnimation];
+    currentAnimationFrame = newFrameset.startFrame;
+
+    if(newFrameset.soundId > 0 && soundReplayTimer <= 0 && (playingSoundId == ~0u || !soundMix.isSoundPlaying(playingSoundId)))
+    {
+        lastSound = soundMix.getLoader().loadSound(newFrameset.soundId);
+        if(lastSound)
+            playingSoundId = soundMix.playSound(lastSound, newFrameset.priority);
+
+        if(newFrameset.replayDelay > 0)
+            soundReplayTimer = newFrameset.replayDelay * 1000;
+        else
+            soundReplayTimer = 0;
+    }
 }
