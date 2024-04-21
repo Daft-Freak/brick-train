@@ -350,7 +350,7 @@ ObjectDataStore &World::getObjectDataStore()
     return objectDataStore;
 }
 
-Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
+Object World::createObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
 {
     // attempt to get texture
     auto texture = texLoader.loadTexture(id);
@@ -363,7 +363,12 @@ Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
     if(data && texture && data->semiTransparent)
         SDL_SetTextureAlphaMod(texture.get(), 127);
 
-    return objects.emplace_back(id, x, y, name, texture, data);
+    return {id, x, y, name, texture, data};
+}
+
+Object &World::addObject(uint16_t id, uint16_t x, uint16_t y, std::string name)
+{
+    return objects.emplace_back(std::move(createObject(id, x, y, name)));
 }
 
 Object *World::getObjectAt(unsigned int x, unsigned int y)
