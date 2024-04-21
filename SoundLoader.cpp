@@ -37,7 +37,10 @@ std::shared_ptr<Mix_Chunk> SoundLoader::loadSound(std::string_view relPath)
     std::shared_ptr<Mix_Chunk> texPtr(sound, Mix_FreeChunk);
 
     // save
-    sounds.emplace(relPath, texPtr);
+    auto res = sounds.emplace(relPath, texPtr);
+
+    if(!res.second)
+        res.first->second = texPtr;
 
     return texPtr;
 }

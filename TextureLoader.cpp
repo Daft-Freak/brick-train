@@ -61,7 +61,10 @@ std::shared_ptr<SDL_Texture> TextureLoader::loadTexture(std::string_view relPath
     std::shared_ptr<SDL_Texture> texPtr(texture, SDL_DestroyTexture);
 
     // save
-    textures.emplace(relPath, texPtr);
+    auto res = textures.emplace(relPath, texPtr);
+
+    if(!res.second)
+        res.first->second = texPtr;
 
     return texPtr;
 }
