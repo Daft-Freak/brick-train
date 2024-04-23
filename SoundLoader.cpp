@@ -9,10 +9,8 @@ SoundLoader::SoundLoader(FileLoader &fileLoader) : fileLoader(fileLoader)
 
 std::shared_ptr<Mix_Chunk> SoundLoader::loadSound(std::string_view relPath)
 {
-    auto tex = findSound(relPath);
-
-    if(tex)
-        return tex;
+    if(auto sound = findSound(relPath))
+        return sound;
 
     // TODO: some sounds have .dat files with a few properties
 
@@ -34,15 +32,15 @@ std::shared_ptr<Mix_Chunk> SoundLoader::loadSound(std::string_view relPath)
     }
 
 
-    std::shared_ptr<Mix_Chunk> texPtr(sound, Mix_FreeChunk);
+    std::shared_ptr<Mix_Chunk> soundPtr(sound, Mix_FreeChunk);
 
     // save
-    auto res = sounds.emplace(relPath, texPtr);
+    auto res = sounds.emplace(relPath, soundPtr);
 
     if(!res.second)
-        res.first->second = texPtr;
+        res.first->second = soundPtr;
 
-    return texPtr;
+    return soundPtr;
 }
 
 std::shared_ptr<Mix_Chunk> SoundLoader::loadSound(int32_t id)
