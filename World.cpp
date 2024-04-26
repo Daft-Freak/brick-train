@@ -312,6 +312,18 @@ void World::handleEvent(SDL_Event &event)
 
 void World::render(SDL_Renderer *renderer)
 {
+    // set clipping
+    SDL_Rect clip{
+        -scrollX, -scrollY,
+        static_cast<int>(width * tileSize * zoom),
+        static_cast<int>(height * tileSize * zoom)
+    };
+
+    SDL_Rect oldClip;
+    SDL_RenderGetClipRect(renderer, &oldClip);
+
+    SDL_RenderSetClipRect(renderer, &clip);
+
     if(backdrop)
     {
         // TODO: repeat/scale?
@@ -335,6 +347,8 @@ void World::render(SDL_Renderer *renderer)
         for(auto &object : objects)
             object.render(renderer, scrollX, scrollY, z, zoom);
     }
+
+    SDL_RenderSetClipRect(renderer, &oldClip);
 }
 
 void World::setWindowSize(unsigned int windowWidth, unsigned int windowHeight)
